@@ -14,8 +14,14 @@ struct Manifest {
     std::vector<std::string> dependencies;
     std::map<std::string, std::string> libraries;
 };
-struct Selection { std::string manifest; bool enabled = true; };
-struct Playset { int schema = 1; std::vector<Selection> mods; };
+struct Selection {
+    std::string manifest;
+    bool enabled = true;
+};
+struct Playset {
+    int schema = 1;
+    std::vector<Selection> mods;
+};
 struct CatalogEntry {
     std::filesystem::path path;
     Manifest manifest;

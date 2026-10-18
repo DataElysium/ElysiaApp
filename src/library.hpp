@@ -4,7 +4,8 @@
 namespace elysia::app::detail {
 class Library {
     void* handle_ = nullptr;
-  public:
+
+public:
     explicit Library(const std::filesystem::path&);
     ~Library();
     Library(const Library&) = delete;

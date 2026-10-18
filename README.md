@@ -29,6 +29,13 @@ Players need only the packaged game, not these checkouts or build commands.
 
 ## Build in this directory
 
+Project-owned C++ follows the root `.clang-format`. Format it, excluding vendored sources:
+
+```sh
+git ls-files -z '*.cpp' '*.hpp' '*.h' ':!:thirdparty/**' | xargs -0 clang-format -i
+git ls-files -z '*.cpp' '*.hpp' '*.h' ':!:thirdparty/**' | xargs -0 clang-format --dry-run --Werror
+```
+
 ```sh
 cd /home/cts/workspace/ElysiaApp
 xmake f -P . -y -m release --ecs=/home/cts/workspace/ElysiaECS_Hpp

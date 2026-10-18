@@ -4,7 +4,11 @@
 #include <span>
 
 namespace elysia::app {
-struct LoadedModule { std::string id; std::filesystem::path directory; bool dynamic; };
+struct LoadedModule {
+    std::string id;
+    std::filesystem::path directory;
+    bool dynamic;
+};
 /** Owns the App and all loaded libraries. App callbacks, executors, entities and resources
  * are destroyed before any library unloads, including after failed installation or execution.
  * Startup is single-threaded. Plugins must stop/join their own workers before destruction.
@@ -14,12 +18,14 @@ struct LoadedModule { std::string id; std::filesystem::path directory; bool dyna
 class Runtime {
     struct Impl;
     std::unique_ptr<Impl> impl_;
-  public:
+
+public:
     Runtime();
     ~Runtime();
     Runtime(const Runtime&) = delete;
     Runtime& operator=(const Runtime&) = delete;
-    /** Configure resources/plugins before load; do not init/update the App until loading completes. */
+    /** Configure resources/plugins before load; do not init/update the App until loading completes.
+     */
     App& app();
     /** Copies descriptor metadata; the install function must remain valid for this Runtime. */
     void register_static(const ModuleDescriptor&);

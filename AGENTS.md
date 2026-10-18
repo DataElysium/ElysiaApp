@@ -20,3 +20,5 @@
   `tools/gui_smoke.py` with a desktop display, plus the separately built GUI-tool SDK consumer.
   Retained infrastructure uses AfterAppLifetime so contexts outlive App resource destructors.
 - Git identity, if commits are requested: Klein <klein@elysia.dev>.
+- Format project-owned C++ with the root `.clang-format`; preserve include order and never
+  reformat vendored `thirdparty/` sources. Run clang-format's dry-run check before finishing C++ edits.

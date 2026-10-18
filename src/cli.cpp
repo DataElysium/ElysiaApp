@@ -11,7 +11,8 @@ int run_cli(int argc, char** argv, std::span<const ModuleDescriptor* const> buil
         for (int i = 1; i < argc; ++i) {
             const std::string_view option = argv[i];
             if (option == "--") {
-                while (++i < argc) arguments.values.emplace_back(argv[i]);
+                while (++i < argc)
+                    arguments.values.emplace_back(argv[i]);
                 break;
             }
             if (option == "--help") {
@@ -22,16 +23,22 @@ int run_cli(int argc, char** argv, std::span<const ModuleDescriptor* const> buil
             if ((option == "--playset" || option == "--list") && i + 1 < argc) {
                 auto& target = option == "--playset" ? playset : listing;
                 target = argv[++i];
-            } else throw std::invalid_argument("Unknown or incomplete host argument: " + std::string(option));
+            } else
+                throw std::invalid_argument("Unknown or incomplete host argument: " +
+                                            std::string(option));
         }
         if (!listing.empty()) {
             for (const auto& entry : discover(listing)) {
-                if (entry.error.empty()) std::cout << entry.manifest.id << " " << entry.manifest.version << " " << entry.manifest.name << '\n';
-                else std::cout << entry.path.string() << ": " << entry.error << '\n';
+                if (entry.error.empty())
+                    std::cout << entry.manifest.id << " " << entry.manifest.version << " "
+                              << entry.manifest.name << '\n';
+                else
+                    std::cout << entry.path.string() << ": " << entry.error << '\n';
             }
             return 0;
         }
-        if (playset.empty()) throw std::invalid_argument("Supply --playset FILE; plugin arguments follow '--'");
+        if (playset.empty())
+            throw std::invalid_argument("Supply --playset FILE; plugin arguments follow '--'");
         playset = std::filesystem::absolute(playset).lexically_normal();
         bool restart;
         do {
@@ -40,7 +47,8 @@ int run_cli(int argc, char** argv, std::span<const ModuleDescriptor* const> buil
             Runtime runtime;
             runtime.app().add_resource(arguments);
             for (const auto* descriptor : builtins) {
-                if (!descriptor) throw std::invalid_argument("Null static descriptor");
+                if (!descriptor)
+                    throw std::invalid_argument("Null static descriptor");
                 runtime.register_static(*descriptor);
             }
             runtime.load(playset);

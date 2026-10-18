@@ -28,9 +28,12 @@ inline constexpr const char* module_symbol = "elysia_app_module_v1";
  */
 constexpr uint64_t native_abi() {
     uint64_t hash = 14695981039346656037ull;
-    auto mix = [&](uint64_t value) { hash = (hash ^ value) * 1099511628211ull; };
+    auto mix = [&](uint64_t value) {
+        hash = (hash ^ value) * 1099511628211ull;
+    };
     for (const auto text : {std::string_view(__VERSION__), std::string_view(ELYSIA_APP_BUILD_TAG)})
-        for (const unsigned char c : text) mix(c);
+        for (const unsigned char c : text)
+            mix(c);
 #ifdef _MSC_VER
     mix(_MSC_VER);
 #endif
@@ -52,9 +55,14 @@ constexpr uint64_t native_abi() {
 #ifdef ELYSIA_PERF_OVERLAY
     mix(3);
 #endif
-    mix(sizeof(void*)); mix(std::endian::native == std::endian::little);
-    mix(sizeof(App)); mix(sizeof(World)); mix(sizeof(Entity));
-    mix(sizeof(std::string)); mix(sizeof(std::filesystem::path)); mix(sizeof(std::string_view));
+    mix(sizeof(void*));
+    mix(std::endian::native == std::endian::little);
+    mix(sizeof(App));
+    mix(sizeof(World));
+    mix(sizeof(Entity));
+    mix(sizeof(std::string));
+    mix(sizeof(std::filesystem::path));
+    mix(sizeof(std::string_view));
     mix(sizeof(ModSession));
     return hash;
 }
@@ -81,14 +89,19 @@ using QueryModule = const ModuleDescriptor* (*)();
 
 /** Hold infrastructure until AFTER App destruction and BEFORE DLL unload.
  * The host owns the callbacks/storage. Only resources tied to this Runtime may retain owners.
- * Retained objects are released in reverse registration order. Stop/join workers before returning from run.
+ * Retained objects are released in reverse registration order. Stop/join workers before returning
+ * from run.
  */
 struct AfterAppLifetime {
     void* state;
     void (*retain)(void*, std::shared_ptr<void>);
-    template<class T> void hold(std::shared_ptr<T> value) const { retain(state, std::move(value)); }
+    template <class T> void hold(std::shared_ptr<T> value) const {
+        retain(state, std::move(value));
+    }
 };
 
 /** Arguments after the host's '--' delimiter; interpreted exclusively by application plugins. */
-struct Arguments { std::vector<std::string> values; };
+struct Arguments {
+    std::vector<std::string> values;
+};
 } // namespace elysia::app
