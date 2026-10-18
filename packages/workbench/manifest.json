@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "id": "example.workbench",
+  "name": "Signal Workbench",
+  "version": "0.1.0",
+  "dependencies": [
+    "elysia.gui"
+  ],
+  "libraries": {
+    "windows": "Assemblies/elysia-workbench.dll",
+    "linux": "Assemblies/libelysia-workbench.so",
+    "macos": "Assemblies/libelysia-workbench.dylib"
+  }
+}

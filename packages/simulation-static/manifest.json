@@ -1,0 +1,7 @@
+{
+  "schema": 1,
+  "id": "demo.simulation",
+  "name": "Simulation (static)",
+  "version": "0.1.0",
+  "dependencies": []
+}

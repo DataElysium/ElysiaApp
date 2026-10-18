@@ -1,0 +1,4 @@
+/.xmake/
+/build/
+/dist/
+__pycache__/

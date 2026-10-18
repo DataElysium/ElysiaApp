@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "id": "demo.simulation",
+  "name": "Simulation",
+  "version": "0.1.0",
+  "dependencies": [],
+  "libraries": {
+    "windows": "Assemblies/elysia-demo-simulation.dll",
+    "linux": "Assemblies/libelysia-demo-simulation.so",
+    "macos": "Assemblies/libelysia-demo-simulation.dylib"
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "steps": 4,
+  "scene": {
+    "prefabs": {
+      "demo::mover": {
+        "params": {
+          "speed": 2,
+          "start": 0,
+          "name": "Mover"
+        },
+        "body": [
+          {
+            "id": 0,
+            "components": {
+              "Position": {
+                "x": "$start"
+              },
+              "Velocity": {
+                "x": "$speed"
+              },
+              "Label": {
+                "name": "$name"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "instances": [
+      {
+        "id": "first",
+        "prefab": "demo::mover",
+        "params": {
+          "name": "Alpha"
+        }
+      },
+      {
+        "id": "second",
+        "prefab": "demo::mover",
+        "params": {
+          "speed": 3,
+          "start": 10,
+          "name": "Beta"
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "id": "demo.case_loader",
+  "name": "Prefab case loader",
+  "version": "0.1.0",
+  "dependencies": [
+    "demo.simulation"
+  ],
+  "libraries": {
+    "windows": "Assemblies/elysia-demo-case-loader.dll",
+    "linux": "Assemblies/libelysia-demo-case-loader.so",
+    "macos": "Assemblies/libelysia-demo-case-loader.dylib"
+  }
+}

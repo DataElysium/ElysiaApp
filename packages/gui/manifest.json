@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "id": "elysia.gui",
+  "name": "Elysia ImGui Application",
+  "version": "0.1.0",
+  "dependencies": [],
+  "libraries": {
+    "windows": "Assemblies/elysia-gui.dll",
+    "linux": "Assemblies/libelysia-gui.so",
+    "macos": "Assemblies/libelysia-gui.dylib"
+  }
+}

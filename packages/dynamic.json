@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "mods": [
+    {
+      "manifest": "Mods/case-loader/manifest.json",
+      "enabled": true
+    },
+    {
+      "manifest": "Mods/simulation/manifest.json",
+      "enabled": true
+    }
+  ]
+}
