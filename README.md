@@ -32,8 +32,8 @@ Players need only the packaged game, not these checkouts or build commands.
 Project-owned C++ follows the root `.clang-format`. Format it, excluding vendored sources:
 
 ```sh
-git ls-files -z '*.cpp' '*.hpp' '*.h' ':!:thirdparty/**' | xargs -0 clang-format -i
-git ls-files -z '*.cpp' '*.hpp' '*.h' ':!:thirdparty/**' | xargs -0 clang-format --dry-run --Werror
+rg --files -0 include src host examples modules tests -g '*.cpp' -g '*.hpp' -g '*.h' | xargs -0 clang-format -i
+rg --files -0 include src host examples modules tests -g '*.cpp' -g '*.hpp' -g '*.h' | xargs -0 clang-format --dry-run --Werror
 ```
 
 ```sh
@@ -99,10 +99,12 @@ relative `--case` paths belong to the plugin CLI and are relative to the working
 
 ```text
 include/elysia_app/
-  module.hpp       Native descriptor, install context, raw application arguments
-  catalog.hpp      Manifest, enabled playset, metadata discovery; no ImGui required
-  session.hpp      Playset editing data and deferred whole-App restart request
-  runtime.hpp      Linkable Runtime and reusable run_cli entry
+  module.hpp        DLL query/export, descriptor and install context
+  runtime.hpp       Host-owned Runtime and reusable executable entry (run_cli)
+  application.hpp   Plugin arguments and infrastructure lifetime resources
+  mod_catalog.hpp   Package metadata, discovery and enabled/order lists
+  mod_selection.hpp Next-start selection and deferred whole-App restart request
+  detail/           Native build fingerprint implementation; not an application-facing feature
 src/               Platform library loading, metadata, preflight and lifecycle implementation
 host/              Generic executable, one call to run_cli
 examples/
@@ -117,6 +119,26 @@ packages/          Source manifests, prefab case and application playsets
 build/.../sandbox/ Relocatable application data and DLL packages
 ```
 
+Choose headers by the work you are doing:
+
+| Task | Include | Types/functions to read |
+| --- | --- | --- |
+| Export a DLL mod | `elysia_app/module.hpp` | `ELYSIA_APP_EXPORT`, `ModuleDescriptor`, `ModuleContext` |
+| Write a host executable | `elysia_app/runtime.hpp` | `Runtime`, `run_cli` |
+| Read plugin arguments | `elysia_app/application.hpp` | `Arguments` |
+| Retain renderer infrastructure through App teardown | `elysia_app/application.hpp` | `AfterAppLifetime` |
+| Browse packages or save enabled/load-order lists | `elysia_app/mod_catalog.hpp` | `Manifest`, `Playset`, `discover`, read/save functions |
+| Build a mod-selection/restart UI | `elysia_app/mod_selection.hpp` | `ModSession` |
+| Write a GUI tool | `elysia_gui/gui.hpp` | GUI umbrella; see the GUI header map below |
+
+`module.hpp` no longer includes mod-selection/catalog data, CLI arguments or lifetime resources.
+`application.hpp` is a set of shared resources, not another App implementation. Ordinary modules
+keep using the existing `elysia::App` and `Plugin::build(App&)`. The module query/export and
+installation signatures are unchanged. The old `catalog.hpp` and `session.hpp` include names are
+replaced by the explicit mod feature names above. Rebuild the SDK and native modules together;
+the build fingerprint now uses an explicit SDK contract revision instead of a dependency on
+`sizeof(ModSession)`.
+
 A DLL is a distribution form of a normal Elysia plugin:
 
 ```cpp
@@ -124,16 +146,25 @@ A DLL is a distribution form of a normal Elysia plugin:
 #include <my_app/plugin.hpp>
 
 ELYSIA_APP_EXPORT const elysia::app::ModuleDescriptor* elysia_app_module_v1() {
-    static const elysia::app::ModuleDescriptor descriptor{
-        .id="my_app.simulation", .name="My simulation", .release="0.1.0",
-        .install=[](elysia::App& app, const elysia::app::ModuleContext& context) {
-            app.add_plugin(MySimulationPlugin{});
-        }};
+    static constexpr auto descriptor = elysia::app::module<MySimulationPlugin>();
     return &descriptor;
 }
 ```
 
-For static use, keep the descriptor in the static library and register it with
+`module<Plugin>()` is evaluated at compile time. It generates the descriptor size, SDK version,
+build fingerprint, full type name via `nameof`, and installation callback. There is no per-plugin
+registration macro, separate traits class, static registration side effect, or manual install lambda.
+The plugin only provides its ordinary `build(App&)`. If it needs the package directory, give it a
+constructor taking `const ModuleContext&`; installation passes that context automatically. Copy
+borrowed paths/strings into state that survives installation.
+
+The package ID defaults to the manifest's folder name; it can be overridden by `id` for dependency
+naming. That alias is independent of the C++ type name. A manifest can override the display `name`;
+otherwise a loaded module supplies its inferred full type name. An omitted release stays unknown:
+the compiler cannot infer a product version, and the SDK does not fabricate one.
+
+For static use, write `module<Plugin>("package.id")` once to associate the linked implementation
+with a package. Keep the descriptor in the static library and register it with
 `Runtime::register_static()`. The install function is unchanged. Metadata is copied by
 the SDK; callback code must remain available. The simulation example compiles the SAME
 `simulation.cpp` into a static library and into a DLL, with a tiny export wrapper for the latter.
@@ -165,10 +196,25 @@ Example manifest:
 }
 ```
 
+Only packaging data needs to be written. For example, `Mods/my_tool/manifest.json` can be:
+
+```json
+{
+  "dependencies": ["elysia.gui"],
+  "libraries": {"linux": "Assemblies/libmy_tool.so", "windows": "Assemblies/my_tool.dll"}
+}
+```
+
+This package's default ID is `my_tool`. `schema`, `id`, `name`, `version`, `author`, and `description`
+need not be repeated to make it load. A registered static package with no dependencies can use `{}`.
+Dependencies and the actual platform library filenames remain explicit; neither follows from the
+C++ plugin type. The longer manifest above illustrates optional human-facing overrides.
+
 An empty/omitted `libraries` map selects a registered static implementation of that ID.
-A nonempty map selects a DLL for the current platform. The descriptor ID and release must
-match the manifest. Dependencies must be explicitly enabled in the playset; the host orders
-them first. Independent entries keep playset order. No implicit enabling or automatic override.
+A nonempty map selects a DLL for the current platform. With generated descriptors, package
+identity and release are not repeated in C++. Custom descriptors may explicitly pin an ID or
+release; supplied manifest values must then match those constraints. Dependencies must be explicitly
+enabled in the playset; the host orders them first. Independent entries keep playset order. No implicit enabling or automatic override.
 
 ```json
 {
@@ -229,7 +275,8 @@ possible schema/layout mismatch. Base SDK APIs contain no editor or ImGui types.
 xmake install -P . -y -o /home/cts/workspace/ElysiaApp/dist/sdk elysia-app-sdk
 ```
 
-The prefix contains `include/elysia_app/*.hpp` and `lib/libelysia-app-sdk.a` (`.lib` on Windows).
+The prefix contains `include/elysia_app/` (including its `detail/` implementation headers) and
+`lib/libelysia-app-sdk.a` (`.lib` on Windows).
 ECS headers and third-party dependencies remain external, with the same versions/configuration.
 
 Copy `examples/external_host/` to a directory OUTSIDE this checkout, then build in that copy:

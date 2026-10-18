@@ -1,4 +1,6 @@
 #include "mods.hpp"
+#include <elysia_app/mod_selection.hpp>
+#include <imgui.h>
 
 namespace elysia::gui {
 void draw_mods_menu(Context& context) {
@@ -48,13 +50,20 @@ void draw_mods_window(Context& context) {
                 ImGui::PushID(static_cast<int>(i));
                 ImGui::Checkbox("##enabled", &choice.enabled);
                 ImGui::SameLine();
-                ImGui::TextUnformatted(entry.error.empty() ? entry.manifest.name.c_str()
-                                                           : choice.manifest.c_str());
+                if (!entry.error.empty())
+                    ImGui::TextUnformatted(choice.manifest.c_str());
+                else if (!entry.manifest.name.empty())
+                    ImGui::TextUnformatted(entry.manifest.name.c_str());
+                else
+                    ImGui::TextUnformatted(entry.manifest.id.c_str());
                 ImGui::SameLine();
                 ImGui::TextDisabled(session->active.mods[i].enabled ? "(loaded)" : "(not loaded)");
                 if (entry.error.empty()) {
-                    ImGui::TextDisabled("%s / %s", entry.manifest.id.c_str(),
-                                        entry.manifest.version.c_str());
+                    ImGui::TextDisabled("%s", entry.manifest.id.c_str());
+                    if (!entry.manifest.version.empty()) {
+                        ImGui::SameLine();
+                        ImGui::TextDisabled("/ %s", entry.manifest.version.c_str());
+                    }
                     if (!entry.manifest.description.empty())
                         ImGui::TextWrapped("%s", entry.manifest.description.c_str());
                     for (const auto& dependency : entry.manifest.dependencies)

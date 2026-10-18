@@ -1,4 +1,5 @@
 #include <demo/model.hpp>
+#include <elysia_app/application.hpp>
 #include <demo/authoring.hpp>
 #include <fstream>
 #include <sstream>
@@ -8,6 +9,8 @@ namespace demo {
 namespace p = elysia::prefab;
 struct CaseLoaderPlugin {
     std::filesystem::path directory;
+    explicit CaseLoaderPlugin(const elysia::app::ModuleContext& context)
+        : directory(context.directory) {}
     void build(elysia::App& app) const {
         // Installation only registers behavior; case I/O/spawning waits until every module is
         // installed.
@@ -57,12 +60,6 @@ struct CaseLoaderPlugin {
 };
 } // namespace demo
 ELYSIA_APP_EXPORT const elysia::app::ModuleDescriptor* elysia_app_module_v1() {
-    static const elysia::app::ModuleDescriptor descriptor{
-        .id = "demo.case_loader",
-        .name = "Prefab case loader",
-        .release = "0.1.0",
-        .install = [](elysia::App& app, const elysia::app::ModuleContext& context) {
-            app.add_plugin(demo::CaseLoaderPlugin{context.directory});
-        }};
+    static constexpr auto descriptor = elysia::app::module<demo::CaseLoaderPlugin>();
     return &descriptor;
 }

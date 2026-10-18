@@ -1,16 +1,18 @@
 #include <elysia_app/runtime.hpp>
-#include <elysia_app/catalog.hpp>
+#include <elysia_app/mod_catalog.hpp>
 #include <demo/model.hpp>
 #include <algorithm>
 #include <iostream>
 #include <stdexcept>
 #include <map>
 void catalog_tests();
+void module_tests();
 void lifetime_tests(const std::filesystem::path&);
 
 int main(int argc, char** argv) {
     try {
         const auto bin = std::filesystem::absolute(argv[0]).parent_path();
+        module_tests();
         catalog_tests();
         lifetime_tests(bin);
         auto trace = std::make_shared<std::vector<std::string>>();

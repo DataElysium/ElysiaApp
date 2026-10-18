@@ -1,4 +1,4 @@
-#include <elysia_app/catalog.hpp>
+#include <elysia_app/mod_catalog.hpp>
 #include "library.hpp"
 #include <rfl/json.hpp>
 #include <rfl/DefaultIfMissing.hpp>
@@ -25,8 +25,11 @@ Manifest read_manifest(const std::filesystem::path& path) {
     auto value = read<Manifest>(path);
     if (value.schema != 1)
         throw std::runtime_error("Unsupported manifest schema: " + path.string());
-    if (!detail::valid_id(value.id) || value.name.empty() || value.version.empty())
-        throw std::runtime_error("Manifest requires id, name and version: " + path.string());
+    if (value.id.empty())
+        value.id = std::filesystem::absolute(path).parent_path().filename().string();
+    if (!detail::valid_id(value.id))
+        throw std::runtime_error("Manifest requires a valid package id (defaults to its folder): " +
+                                 path.string());
     for (const auto& dependency : value.dependencies)
         if (!detail::valid_id(dependency) || dependency == value.id)
             throw std::runtime_error("Invalid module dependency: " + dependency);

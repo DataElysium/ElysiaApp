@@ -1,5 +1,5 @@
 #include "../backend.hpp"
-#include <elysia_gui/gui.hpp>
+#include <elysia_gui/image.hpp>
 namespace elysia::gui {
 struct Image::Impl {
     render::backend::Texture texture;

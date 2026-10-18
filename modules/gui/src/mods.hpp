@@ -1,5 +1,6 @@
 #pragma once
-#include <elysia_gui/gui.hpp>
+#include <elysia_gui/application.hpp>
+#include <elysia_gui/mods.hpp>
 namespace elysia::gui {
 struct ModEditor {
     bool open = false;

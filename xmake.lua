@@ -33,7 +33,7 @@ set_pcxxheader(path.join(ecs, "include/elysia/elysia.hpp"))
 target("elysia-app-sdk")
     set_kind("static")
     add_files("src/*.cpp")
-    add_headerfiles("include/(elysia_app/*.hpp)")
+    add_headerfiles("include/(elysia_app/**.hpp)")
     add_includedirs("include", {public=true})
     if is_plat("linux") then add_syslinks("dl", "pthread", {public=true}) end
 
@@ -164,6 +164,9 @@ task("sdk")
         task.run("build", {targets=targets, jobs=6, yes=true})
         local folder=config.get("renderer")=="wgvk" and "wgvk" or "sdk"
         local prefix=path.join(os.projectdir(),"dist",folder)
+        -- Install the declared header tree without leaving headers removed by SDK reorganizations.
+        os.rm(path.join(prefix,"include/elysia_app"))
+        os.rm(path.join(prefix,"include/elysia_gui"))
         task.run("install", {targets=targets, installdir=prefix, yes=true})
         cprint("${green}SDK ready: ${clear}%s",prefix)
     end)

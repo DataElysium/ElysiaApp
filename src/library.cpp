@@ -70,8 +70,8 @@ void validate(const ModuleDescriptor& api) {
         throw std::runtime_error("Module SDK descriptor/version mismatch");
     if (api.abi != native_abi())
         throw std::runtime_error("Module native ABI mismatch; rebuild with the host SDK/toolchain");
-    if (!api.id || !valid_id(api.id) || !api.name || !*api.name || !api.release || !*api.release ||
-        !api.install)
+    if ((api.id && !valid_id(api.id)) || (api.name && !*api.name) ||
+        (api.release && !*api.release) || !api.install)
         throw std::runtime_error("Invalid native module descriptor");
 }
 } // namespace elysia::app::detail

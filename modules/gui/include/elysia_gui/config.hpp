@@ -1,4 +1,8 @@
 #pragma once
+/** @file config.hpp
+ * DLL export/import and shared ImGui compilation macros. Runtime window/font settings are Options
+ * in application.hpp. All tools must use the GUI provider's copy of ImGui.
+ */
 // All GUI modules consume the SAME ImGui implementation and configuration from
 // elysia-gui.
 #ifdef _WIN32

@@ -1,4 +1,4 @@
-#include <elysia_gui/gui.hpp>
+#include <elysia_gui/image.hpp>
 #ifdef _WIN32
 #include <windows.h>
 #endif

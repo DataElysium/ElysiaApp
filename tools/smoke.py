@@ -46,5 +46,19 @@ with tempfile.TemporaryDirectory(prefix='elysia app relocated ') as tmp:
     assert 'ElysiaApp:' in result.stderr and 'App runner:' in result.stderr,result.stderr
     listing=subprocess.run([str(package/('elysia-app'+suffix)),'--list',str(package/'sandbox/Mods')],cwd=elsewhere,capture_output=True,text=True,check=True)
     assert 'demo.case_loader' in listing.stdout,listing.stdout
+    # A DLL package needs no duplicate type name, release or package ID in native code/metadata.
+    # Folder names identify packages; dependencies and library locations remain explicit.
+    for folder in ('simulation','case-loader'):
+        path=package/'sandbox/Mods'/folder/'manifest.json'
+        manifest=json.loads(path.read_text())
+        minimal={'libraries':manifest['libraries']}
+        if folder=='case-loader':minimal['dependencies']=['simulation']
+        path.write_text(json.dumps(minimal))
+    minimal=run(package/('elysia-app'+suffix),package/'sandbox/dynamic.json')
+    assert minimal.stdout==dynamic.stdout,minimal.stdout
+    if args.external:
+        minimal_external=run(args.external.resolve(),package/'sandbox/dynamic.json')
+        assert minimal_external.stdout==minimal.stdout,minimal_external.stdout
+    print('PASS real DLL packages with inferred folder IDs, generated descriptors and minimal manifests')
     print('PASS relocated package, foreign CWD, static/DLL parity, plugin case arguments and clean failure exit'
           + ('; installed-SDK external consumer' if args.external else ''))

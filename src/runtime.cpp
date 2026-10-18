@@ -1,5 +1,7 @@
 #include <elysia_app/runtime.hpp>
-#include <elysia_app/catalog.hpp>
+#include <elysia_app/application.hpp>
+#include <elysia_app/mod_selection.hpp>
+#include <elysia_app/mod_catalog.hpp>
 #include "library.hpp"
 #include "playset.hpp"
 #include <algorithm>
@@ -41,7 +43,8 @@ struct Runtime::Impl {
         std::string name, release;
         ModuleDescriptor api;
         explicit StaticModule(const ModuleDescriptor& descriptor)
-            : name(descriptor.name), release(descriptor.release), api(descriptor) {}
+            : name(descriptor.name ? descriptor.name : descriptor.id),
+              release(descriptor.release ? descriptor.release : ""), api(descriptor) {}
     };
     std::map<std::string, StaticModule> statics;
     std::vector<LoadedModule> modules;
@@ -65,12 +68,15 @@ void Runtime::register_static(const ModuleDescriptor& api) {
     if (impl_->phase != Impl::Phase::configuring)
         throw std::logic_error("Register static modules before loading");
     detail::validate(api);
+    if (!api.id)
+        throw std::invalid_argument(
+            "Static module requires a package id: use module<Plugin>(\"package.id\")");
     const auto [entry, inserted] = impl_->statics.try_emplace(api.id, api);
     if (!inserted)
         throw std::invalid_argument("Duplicate static module: " + std::string(api.id));
     entry->second.api.id = entry->first.c_str();
     entry->second.api.name = entry->second.name.c_str();
-    entry->second.api.release = entry->second.release.c_str();
+    entry->second.api.release = api.release ? entry->second.release.c_str() : nullptr;
 }
 void Runtime::load(const std::filesystem::path& playset_file) {
     if (impl_->phase != Impl::Phase::configuring)
@@ -78,8 +84,8 @@ void Runtime::load(const std::filesystem::path& playset_file) {
     impl_->phase = Impl::Phase::loading;
     try {
         const auto playset = read_playset(playset_file);
-        const auto plan = detail::resolve(playset_file, playset);
-        const auto& packages = plan.packages;
+        auto plan = detail::resolve(playset_file, playset);
+        auto& packages = plan.packages;
         const auto& order = plan.order;
 
         struct Prepared {
@@ -89,7 +95,7 @@ void Runtime::load(const std::filesystem::path& playset_file) {
         std::vector<Prepared> prepared;
         // Preflight every descriptor before the first install callback can mutate the App.
         for (const auto i : order) {
-            const auto& package = packages[i];
+            auto& package = packages[i];
             const ModuleDescriptor* api = nullptr;
             if (package.manifest.libraries.empty()) {
                 const auto found = impl_->statics.find(package.manifest.id);
@@ -117,9 +123,15 @@ void Runtime::load(const std::filesystem::path& playset_file) {
                                              package.manifest.id);
             }
             detail::validate(*api);
-            if (package.manifest.id != api->id || package.manifest.version != api->release)
+            if ((api->id && package.manifest.id != api->id) ||
+                (api->release && !package.manifest.version.empty() &&
+                 package.manifest.version != api->release))
                 throw std::runtime_error("Manifest/descriptor identity or release mismatch: " +
                                          package.manifest.id);
+            if (package.manifest.name.empty())
+                package.manifest.name = api->name ? api->name : package.manifest.id;
+            if (package.manifest.version.empty() && api->release)
+                package.manifest.version = api->release;
             prepared.push_back({api, i});
         }
         // The host owns persistence/restart callbacks; GUI DLLs only edit data and request.
@@ -141,6 +153,12 @@ void Runtime::load(const std::filesystem::path& playset_file) {
             CatalogEntry entry{(base / selection.manifest).lexically_normal(), {}, {}};
             try {
                 entry.manifest = read_manifest(entry.path);
+                for (const auto& package : packages)
+                    if (package.root.lexically_normal() ==
+                        entry.path.parent_path().lexically_normal()) {
+                        entry.manifest = package.manifest;
+                        break;
+                    }
             } catch (const std::exception& error) {
                 entry.error = error.what();
             }

@@ -22,3 +22,12 @@
 - Git identity, if commits are requested: Klein <klein@elysia.dev>.
 - Format project-owned C++ with the root `.clang-format`; preserve include order and never
   reformat vendored `thirdparty/` sources. Run clang-format's dry-run check before finishing C++ edits.
+
+- Public headers are grouped by user task. Module entry contracts stay in module.hpp; host resources
+  in application.hpp; mod browsing/selection in mod_catalog.hpp and mod_selection.hpp. GUI tools use
+  gui.hpp, which aggregates application/windows/image/mods feature headers. Keep implementation
+  details out of these contracts and include each used feature explicitly inside the provider.
+- Prefer module<Plugin>() for ordinary DLL entry points. It derives native names with nameof and
+  installs the existing App plugin. Keep package aliases, display overrides and optional releases
+  in manifests; do not require duplicate metadata in native code. Use a pinned package ID only
+  when registering static implementations or deliberately constraining a custom descriptor.

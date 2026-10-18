@@ -1,4 +1,6 @@
+#include <elysia_app/module.hpp>
 #include <elysia_gui/gui.hpp>
+#include <elysia_app/application.hpp>
 #include <array>
 #include <cmath>
 #include <cstdio>
@@ -107,12 +109,6 @@ struct Plugin {
 };
 } // namespace workbench
 ELYSIA_APP_EXPORT const elysia::app::ModuleDescriptor* elysia_app_module_v1() {
-    static const elysia::app::ModuleDescriptor descriptor{
-        .id = "example.workbench",
-        .name = "Signal Workbench",
-        .release = "0.1.0",
-        .install = [](elysia::App& app, const elysia::app::ModuleContext&) {
-            app.add_plugin(workbench::Plugin{});
-        }};
+    static constexpr auto descriptor = elysia::app::module<workbench::Plugin>();
     return &descriptor;
 }

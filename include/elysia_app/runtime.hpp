@@ -1,4 +1,8 @@
 #pragma once
+/** @file runtime.hpp
+ * Host executable API: owns an App, loads modules, runs it and unloads after destruction.
+ * DLL authors normally need module.hpp instead.
+ */
 #include "module.hpp"
 #include <memory>
 #include <span>

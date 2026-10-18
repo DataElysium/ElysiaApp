@@ -1,5 +1,7 @@
 #include <elysia_app/runtime.hpp>
-#include <elysia_app/catalog.hpp>
+#include <elysia_app/application.hpp>
+#include <elysia_app/mod_selection.hpp>
+#include <elysia_app/mod_catalog.hpp>
 #include <iostream>
 #include <stdexcept>
 
@@ -31,7 +33,9 @@ int run_cli(int argc, char** argv, std::span<const ModuleDescriptor* const> buil
             for (const auto& entry : discover(listing)) {
                 if (entry.error.empty())
                     std::cout << entry.manifest.id << " " << entry.manifest.version << " "
-                              << entry.manifest.name << '\n';
+                              << (entry.manifest.name.empty() ? entry.manifest.id
+                                                              : entry.manifest.name)
+                              << '\n';
                 else
                     std::cout << entry.path.string() << ": " << entry.error << '\n';
             }

@@ -1,6 +1,8 @@
 #pragma once
+#include <elysia_app/application.hpp>
+#include <elysia_app/mod_selection.hpp>
 #include <elysia_app/runtime.hpp>
-#include <elysia_app/catalog.hpp>
+#include <elysia_app/mod_catalog.hpp>
 #include <chrono>
 #include <fstream>
 #include <stdexcept>

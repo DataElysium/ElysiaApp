@@ -8,6 +8,31 @@ The generic `elysia-app` executable links only the base SDK. It knows no ImGui, 
 renderer types. A playset selects GUI or headless composition; later `set_runner` calls
 replace earlier ones, exactly as in the existing App API.
 
+## Public headers
+
+For a normal GUI tool, include **`elysia_gui/gui.hpp`**. It is the SDK umbrella and the checked
+`registry(app)` accessor; it does not contain the frame loop or backend implementation.
+The feature declarations are organized as follows:
+
+| Header | Purpose | Main declarations |
+| --- | --- | --- |
+| `gui.hpp` | Normal tool/application entry point; shared-build checks and registry access | `native_abi`, `check_abi`, `registry` |
+| `application.hpp` | Configure/install GUI and compose the frame loop | `Context`, `Options`, `Callbacks`, `GuiPlugin`, `run`, `quit`, `capture`, `renderer_name` |
+| `windows.hpp` | Register windows and reusable panel contents | `Window`, `Draw`, `Registry` |
+| `image.hpp` | Own/upload an RGBA8 image and obtain its ImGui texture reference | `Image` |
+| `mods.hpp` | Add the optional mod-manager menu to an application menu bar | `draw_mods_menu` |
+| `config.hpp` | Compile/link macros shared with ImGui; not runtime settings | `ELYSIA_GUI_API`, `IMGUI_API` |
+
+`Context` borrows the caller's App. `Registry` holds window descriptions, visibility and drawing
+callbacks; business state belongs in App resources. `Callbacks` provides application-level frame
+hooks, while window/panel callbacks draw their own contents. `Image` owns a texture, and must die
+before its GUI session. Native backend device access is not part of `Image`.
+
+A DLL tool also explicitly includes `elysia_app/module.hpp` for its query/export entry. If it reads
+plugin CLI arguments, also include `elysia_app/application.hpp` explicitly. GUI application support
+uses that resource header for its lifetime contract; it does not supply the DLL module entry contract.
+The `src/render/` headers remain backend implementation details.
+
 ## Try the application
 
 From the independent ElysiaApp project root:
@@ -92,8 +117,21 @@ struct MyToolPlugin {
 };
 ```
 
+For a DLL entry point, add this separately from the window code:
+
+```cpp
+#include <elysia_app/module.hpp>
+
+ELYSIA_APP_EXPORT const elysia::app::ModuleDescriptor* elysia_app_module_v1() {
+    static constexpr auto module = elysia::app::module<MyToolPlugin>();
+    return &module;
+}
+```
+
 The normal module descriptor installs `MyToolPlugin` through `app.add_plugin(...)`.
-Its manifest declares `"dependencies": ["elysia.gui"]`. Shared application data stays in
+Its manifest declares `"dependencies": ["elysia.gui"]` and the library locations. Module type
+name, install callback and SDK metadata are generated at compile time; no duplicate descriptor
+labels/release are required. Shared application data stays in
 App resources/entities; named panels are function callbacks that can be embedded in different
 windows. The GUI thread owns rendering and mutations to these registries. This introduces
 no observer requirement or separate plugin object hierarchy.
@@ -144,7 +182,7 @@ commands and fixed timesteps remain game-owned. It consumes an installed SDK rat
 this project's xmake file. `Runtime::run_composed()` supports that direct plugin composition with
 the same exception/lifetime protection as manifest-based Runtime::run().
 
-The base SDK's `AfterAppLifetime` resource retains infrastructure without adding GUI types
+The base SDK's `AfterAppLifetime` resource (`elysia_app/application.hpp`) retains infrastructure without adding GUI types
 to the SDK. Destruction order is:
 
 ```text

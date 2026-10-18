@@ -1,5 +1,5 @@
 #pragma once
-#include <elysia_app/catalog.hpp>
+#include <elysia_app/mod_catalog.hpp>
 
 namespace elysia::app::detail {
 struct Package {

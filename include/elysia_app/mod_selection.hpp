@@ -1,5 +1,9 @@
 #pragma once
-#include "catalog.hpp"
+/** @file mod_selection.hpp
+ * Editable next-start mod selection and a deferred whole-App restart request.
+ * Used by mod-management interfaces, not by ordinary module entry points.
+ */
+#include "mod_catalog.hpp"
 
 namespace elysia::app {
 /** Host-owned playset editing session, available to any runner after load().

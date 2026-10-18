@@ -1,4 +1,8 @@
 #pragma once
+/** @file mod_catalog.hpp
+ * Package metadata and ordered enable/disable lists. Reading/discovery does not load DLLs.
+ * Use this header for launchers and mod browsers.
+ */
 #include <filesystem>
 #include <map>
 #include <string>
@@ -7,6 +11,8 @@
 namespace elysia::app {
 /** libraries maps windows/linux/macos to paths inside this package.
  * Empty libraries selects an explicitly registered static implementation of the same ID.
+ * id defaults to the package folder. name/version/author/description are optional; loaded modules
+ * can supply their inferred type name. Dependencies and library locations are packaging data.
  */
 struct Manifest {
     int schema = 1;

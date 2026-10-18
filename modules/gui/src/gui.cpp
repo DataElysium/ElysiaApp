@@ -1,4 +1,7 @@
+#include <elysia_app/module.hpp>
 #include "render/surface.hpp"
+#include <elysia_app/application.hpp>
+#include <elysia_app/mod_selection.hpp>
 #include "mods.hpp"
 #include <cstdio>
 #include <cstdlib>
@@ -218,12 +221,6 @@ const char* renderer_name() {
 }
 } // namespace elysia::gui
 ELYSIA_APP_EXPORT const elysia::app::ModuleDescriptor* elysia_app_module_v1() {
-    static const elysia::app::ModuleDescriptor descriptor{
-        .id = "elysia.gui",
-        .name = "Elysia ImGui Application",
-        .release = "0.1.0",
-        .install = [](elysia::App& app, const elysia::app::ModuleContext&) {
-            app.add_plugin(elysia::gui::GuiPlugin{});
-        }};
+    static constexpr auto descriptor = elysia::app::module<elysia::gui::GuiPlugin>();
     return &descriptor;
 }

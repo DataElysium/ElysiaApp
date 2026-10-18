@@ -51,4 +51,17 @@ with tempfile.TemporaryDirectory(prefix='elysia gui relocated ') as directory:
     assert result.returncode!=0 and 'ElysiaApp:' in result.stderr,(result.stdout,result.stderr)
     assert json.loads(report.read_text())['context_alive'],result.stdout
     print('PASS failed startup: GUI context survives App teardown and error propagation')
+    # The ordinary GUI tool also loads without duplicated ID/name/version metadata.
+    for folder in ('gui','workbench'):
+        path=package/'sandbox/Mods'/folder/'manifest.json'
+        original=json.loads(path.read_text())
+        minimal={'libraries':original['libraries']}
+        if folder=='workbench':minimal['dependencies']=['gui']
+        path.write_text(json.dumps(minimal))
+    report=work/'minimal-gui.json'
+    result=execute('gui.json',['--gui-hidden','--gui-frames','4','--scope-report',str(report)])
+    assert result.returncode==0,(result.stdout,result.stderr)
+    state=json.loads(report.read_text())
+    assert state['context_alive'] and state['drawings']==4,state
+    print('PASS GUI provider/tool with generated native descriptors and packaging-only manifests')
     if args.tool_library:print('PASS independently built tool DLL / layered GUI SDK')
