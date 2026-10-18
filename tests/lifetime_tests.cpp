@@ -56,6 +56,16 @@ struct RestartProbe {
     bool fail_next = false;
     std::filesystem::path library;
 };
+struct WorkingDirectory {
+    std::filesystem::path previous = std::filesystem::current_path();
+    explicit WorkingDirectory(const std::filesystem::path& directory) {
+        std::filesystem::current_path(directory);
+    }
+    ~WorkingDirectory() {
+        std::error_code ignored;
+        std::filesystem::current_path(previous, ignored);
+    }
+};
 RestartProbe* restart_probe = nullptr;
 struct RestartMarker {
     ~RestartMarker() {
@@ -87,7 +97,9 @@ void install_restart(elysia::App& app, const elysia::app::ModuleContext&) {
         session.selected.mods[0].enabled = false; // Remove the DLL for the next generation.
         session.selected.mods.back().enabled = probe.fail_next;
         session.save_and_restart(session);
-        std::filesystem::current_path(session.file.parent_path()); // A plugin may change CWD.
+        const auto plugin_directory = session.file.parent_path() / "plugin-cwd";
+        std::filesystem::create_directories(plugin_directory);
+        std::filesystem::current_path(plugin_directory); // A plugin may change CWD.
         test::require(probe.destroyed == 0 && loaded(probe.library),
                       "Restart destroyed code on the runner stack");
         test::require(session.restart_requested, "Restart request was not delivered");
@@ -120,14 +132,19 @@ void restart_tests(const std::filesystem::path& bin) {
                                      {"Mods/restart/manifest.json", true}}});
         RestartProbe probe{.fail_next = fail, .library = root / "simulation/Assemblies" / library};
         restart_probe = &probe;
-        std::vector<std::string> values{"host", "--playset",
-                                        file.lexically_relative(original_cwd).string(), "--",
-                                        "preserved-argument"};
-        std::vector<char*> args;
-        for (auto& value : values)
-            args.push_back(value.data());
-        const auto result = run_cli(static_cast<int>(args.size()), args.data(), apis);
-        std::filesystem::current_path(original_cwd);
+        int result;
+        {
+            // The temp directory and checkout can be on different Windows drives.
+            WorkingDirectory directory(temporary.path);
+            std::vector<std::string> values{"host", "--playset", "playset.json", "--",
+                                            "preserved-argument"};
+            std::vector<char*> args;
+            for (auto& value : values)
+                args.push_back(value.data());
+            result = run_cli(static_cast<int>(args.size()), args.data(), apis);
+        }
+        test::require(std::filesystem::current_path() == original_cwd,
+                      "Restart test did not restore its working directory");
         test::require(result == (fail ? 1 : 0), "Restart startup failure was not returned by host");
         test::require(probe.installs == (fail ? 1 : 2) && probe.runs == probe.installs &&
                           probe.destroyed == probe.installs,

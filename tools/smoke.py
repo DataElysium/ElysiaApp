@@ -22,8 +22,8 @@ with tempfile.TemporaryDirectory(prefix='elysia app relocated ') as tmp:
     for name in ('elysia-app','elysia-app-static'):
         shutil.copy2(source/(name+suffix),package/(name+suffix))
     elsewhere=work/'unrelated';elsewhere.mkdir()
-    def run(executable,playset,*plugin_args,ok=True):
-        result=subprocess.run([str(executable),'--playset',str(playset),*plugin_args],cwd=elsewhere,capture_output=True,text=True)
+    def run(executable,playset,*plugin_args,ok=True,cwd=elsewhere):
+        result=subprocess.run([str(executable),'--playset',str(playset),*plugin_args],cwd=cwd,capture_output=True,text=True)
         assert (result.returncode==0)==ok,(result.returncode,result.stdout,result.stderr)
         return result
     dynamic=run(package/('elysia-app'+suffix),package/'sandbox/dynamic.json')
@@ -31,6 +31,8 @@ with tempfile.TemporaryDirectory(prefix='elysia app relocated ') as tmp:
     expected=['Alpha x=8','Beta x=22','ticks=4']
     assert sorted(dynamic.stdout.splitlines())==expected,dynamic.stdout
     assert dynamic.stdout==mixed.stdout,(dynamic.stdout,mixed.stdout)
+    relative=run(package/('elysia-app'+suffix),pathlib.Path('sandbox/dynamic.json'),cwd=package)
+    assert relative.stdout==dynamic.stdout,relative.stdout
     if args.external:
         independent=run(args.external.resolve(),package/'sandbox/dynamic.json')
         assert independent.stdout==dynamic.stdout,independent.stdout
