@@ -45,6 +45,16 @@ void catalog_tests() {
         test::rejects([&]{runtime.run();},"Run requires");
         runtime.load(file);
         test::require(runtime.modules()[0].id=="alpha" && !runtime.modules()[0].dynamic,"Static dependency-first loading failed");
+        auto& session = *runtime.app().world().resources().get<ModSession>();
+        session.selected.mods[1].enabled = false;
+        test::rejects([&]{session.save_and_restart(session);},"requires enabled alpha");
+        test::require(!session.restart_requested && read_playset(file).mods[1].enabled,
+            "Rejected restart altered saved/running selection");
+        session.selected = session.active;
+        std::filesystem::create_directory(file.string()+".tmp");
+        test::rejects([&]{session.save_and_restart(session);},"Cannot save playset");
+        test::require(!session.restart_requested,"Failed save requested restart");
+        std::filesystem::remove(file.string()+".tmp");
         runtime.run();
         test::require(runtime.app().world().resources().get<Log>()->events.back()=="startup","Startup graph did not run");
         test::rejects([&]{runtime.load(file);},"one playset");

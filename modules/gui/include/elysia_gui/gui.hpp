@@ -104,6 +104,11 @@ public:
  * this function.
  */
 ELYSIA_GUI_API void run(App &);
+/** Reusable Mods menu for application-owned menu bars. The GUI runner draws its
+ * editor window and returns after a successful save/restart request. Available
+ * only for a playset-loaded Runtime; rebuilding is the outer host's job.
+ */
+ELYSIA_GUI_API void draw_mods_menu(Context &);
 /** Request loop exit after the current frame; does not terminate the simulation
  * process. */
 ELYSIA_GUI_API void quit(App &);

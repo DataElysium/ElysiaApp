@@ -94,6 +94,7 @@ relative `--case` paths belong to the plugin CLI and are relative to the working
 include/elysia_app/
   module.hpp       Native descriptor, install context, raw application arguments
   catalog.hpp      Manifest, enabled playset, metadata discovery; no ImGui required
+  session.hpp      Playset editing data and deferred whole-App restart request
   runtime.hpp      Linkable Runtime and reusable run_cli entry
 src/               Platform library loading, metadata, preflight and lifecycle implementation
 host/              Generic executable, one call to run_cli
@@ -173,9 +174,19 @@ them first. Independent entries keep playset order. No implicit enabling or auto
 ```
 
 `discover()` lists manifest metadata without loading native code. Invalid manifests remain
-visible with an error. `read_playset()`/`save_playset()` support a future launcher's checkboxes;
-saves replace the old selection only after the new file has been written. This experiment
-provides those APIs and `--list DIRECTORY`, not a second graphical launcher.
+visible with an error. The GUI provider now exposes **Mods → Manage mods...**. It lists
+selected entries and discovers additional manifests in `Mods/` beside the playset; discoveries
+start disabled. Checkboxes edit the next selection without changing the current App.
+**Save selection & restart App** validates metadata/dependencies, atomically replaces the
+explicitly displayed playset file, then requests runner exit. Use a writable playset; a failed
+save or dependency check leaves the current App running. Installation order still follows the
+playset/dependencies; this first menu does not provide ordering or per-mod settings editors.
+
+`run_cli()` destroys the old Runtime completely before constructing the next one, registering
+the static adapters again and replaying the original plugin arguments. Running data resets.
+No App/context/library is destroyed on the draw callback stack. Libraries and ABI are checked
+at next startup; if that startup fails, the host reports the error and exits, without rollback.
+This reloads the application composition, not live machine code or an individual module.
 
 ## Lifecycle and ownership
 
@@ -190,7 +201,8 @@ provides those APIs and `--list DIRECTORY`, not a second graphical launcher.
 Do not call App init/update/run during installation. `ModuleContext` is borrowed during
 install only: copy its directory into callbacks/resources that need it later. Registration
 and execution happen on the host thread; plugins owning async workers must stop/join them
-before their state is destroyed. No runtime unload, hot reload or install rollback is promised.
+before their state is destroyed. No in-place module unload, state migration or install rollback is promised.
+Whole-App restart happens only after the runner returns and the previous Runtime is destroyed.
 A Runtime that failed installation/execution cannot be run or loaded again.
 
 Exceptions can carry DLL vtables, destructors and message storage. Query/install/run calls
@@ -244,5 +256,5 @@ The optional [GUI ecosystem module](modules/gui/README.md) now provides a shared
 docking/windows/panels, backend-owned images and a separately compiled tool DLL. Its default backend
 is OpenGL 3.3; the existing Fleet WGVK backend is also available behind the same interface.
 Fleet now consumes the installed SDK through FleetClientPlugin in a local integration.
-A graphical playset manager, Windows validation and production SDK version policy remain
-subsequent work. ECS module/Hpp repositories are unchanged.
+The graphical playset/restart experiment is available in ElysiaApp; Fleet has not adopted
+this menu or the restart loop. Windows validation and production SDK version policy remain subsequent work. ECS module/Hpp repositories are unchanged.

@@ -1,4 +1,5 @@
 #include "render/surface.hpp"
+#include "mods.hpp"
 #include <cstdio>
 #include <cstdlib>
 #include <elysia_gui/gui.hpp>
@@ -66,6 +67,7 @@ struct Session {
       surface.reset();
       ImGui::DestroyContext(context);
       std::fprintf(stdout, "GUI context destroyed after App resources\n");
+      std::fflush(stdout);
     }
   }
   void initialize() {
@@ -124,7 +126,7 @@ void GuiPlugin::build(App &app) const {
     throw std::invalid_argument("Invalid GUI window options");
   auto session = std::make_shared<Session>(settings(app, options));
   lifetime->hold(session);
-  app.add_resource(Service{std::move(session)}).add_resource(Registry{});
+  app.add_resource(Service{std::move(session)}).add_resource(Registry{}).add_resource(ModEditor{});
   app.set_runner([](App &running) {
     run(running);
   }); // Normal last-installed-runner semantics.
@@ -168,6 +170,7 @@ void run(App &app) {
             ImGui::EndMenu();
           }
           windows.draw_menu();
+          draw_mods_menu(context);
           ImGui::SameLine();
           ImGui::TextDisabled("%s", render::Surface::name());
           ImGui::EndMainMenuBar();
@@ -176,6 +179,7 @@ void run(App &app) {
                                      ImGuiDockNodeFlags_PassthruCentralNode);
       }
       windows.draw(context);
+      draw_mods_window(context);
       ImGui::Render();
     } catch (...) {
       ImGui::EndFrame();
@@ -193,6 +197,9 @@ void run(App &app) {
       session.surface->present();
     else
       session.surface->wait_events();
+    if (const auto* mods = app.world().resources().get<app::ModSession>();
+        mods && mods->restart_requested)
+      session.quit = true;
   }
   std::fprintf(stdout, "GUI frames=%d vertices=%llu windows=%zu renderer=%s\n",
                frames, static_cast<unsigned long long>(vertices),

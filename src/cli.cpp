@@ -32,14 +32,21 @@ int run_cli(int argc, char** argv, std::span<const ModuleDescriptor* const> buil
             return 0;
         }
         if (playset.empty()) throw std::invalid_argument("Supply --playset FILE; plugin arguments follow '--'");
-        Runtime runtime;
-        runtime.app().add_resource(std::move(arguments));
-        for (const auto* descriptor : builtins) {
-            if (!descriptor) throw std::invalid_argument("Null static descriptor");
-            runtime.register_static(*descriptor);
-        }
-        runtime.load(playset);
-        runtime.run();
+        playset = std::filesystem::absolute(playset).lexically_normal();
+        bool restart;
+        do {
+            // A distinct scope is essential: App, retained services and DLLs all die
+            // before constructing the next Runtime. Never reload from inside a callback.
+            Runtime runtime;
+            runtime.app().add_resource(arguments);
+            for (const auto* descriptor : builtins) {
+                if (!descriptor) throw std::invalid_argument("Null static descriptor");
+                runtime.register_static(*descriptor);
+            }
+            runtime.load(playset);
+            runtime.run();
+            restart = runtime.app().world().resources().get<ModSession>()->restart_requested;
+        } while (restart);
         return 0;
     } catch (const std::exception& error) {
         std::cerr << "ElysiaApp: " << error.what() << '\n';

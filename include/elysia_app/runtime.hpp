@@ -8,7 +8,8 @@ struct LoadedModule { std::string id; std::filesystem::path directory; bool dyna
 /** Owns the App and all loaded libraries. App callbacks, executors, entities and resources
  * are destroyed before any library unloads, including after failed installation or execution.
  * Startup is single-threaded. Plugins must stop/join their own workers before destruction.
- * Register static implementations, load one playset, then run once. No hot unload/reload.
+ * Register static implementations, load one playset, then run once. Rebuilding requires
+ * returning from the runner and destroying this entire Runtime first.
  */
 class Runtime {
     struct Impl;
@@ -33,6 +34,7 @@ class Runtime {
     std::span<const LoadedModule> modules() const;
 };
 /** Minimal reusable executable entry. Host flags: --playset FILE, --list DIRECTORY, --help.
+ * The host rebuilds the entire Runtime when ModSession requests restart.
  * Plugin arguments follow '--'. Errors return nonzero; no domain-specific case parsing occurs here.
  */
 int run_cli(int argc, char** argv, std::span<const ModuleDescriptor* const> builtins = {});

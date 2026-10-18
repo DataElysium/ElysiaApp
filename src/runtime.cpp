@@ -1,7 +1,8 @@
 #include <elysia_app/runtime.hpp>
 #include <elysia_app/catalog.hpp>
 #include "library.hpp"
-#include <functional>
+#include "playset.hpp"
+#include <algorithm>
 #include <map>
 #include <stdexcept>
 
@@ -63,32 +64,9 @@ void Runtime::load(const std::filesystem::path& playset_file) {
     impl_->phase = Impl::Phase::loading;
     try {
         const auto playset = read_playset(playset_file);
-        struct Package { Manifest manifest; std::filesystem::path root; };
-        std::vector<Package> packages;
-        std::map<std::string, size_t> ids;
-        for (const auto& selection : playset.mods) {
-            if (!selection.enabled) continue;
-            const auto path = std::filesystem::absolute(playset_file).parent_path() / selection.manifest;
-            auto manifest = read_manifest(path);
-            if (!ids.emplace(manifest.id, packages.size()).second)
-                throw std::runtime_error("Duplicate selected module: " + manifest.id);
-            packages.push_back({std::move(manifest), path.parent_path()});
-        }
-        std::vector<int> visited(packages.size());
-        std::vector<size_t> order;
-        std::function<void(size_t)> visit = [&](size_t i) {
-            if (visited[i] == 2) return;
-            if (visited[i] == 1) throw std::runtime_error("Module dependency cycle at " + packages[i].manifest.id);
-            visited[i] = 1;
-            for (const auto& dependency : packages[i].manifest.dependencies) {
-                const auto found = ids.find(dependency);
-                if (found == ids.end()) throw std::runtime_error("Module " + packages[i].manifest.id + " requires enabled " + dependency);
-                visit(found->second);
-            }
-            visited[i] = 2;
-            order.push_back(i);
-        };
-        for (size_t i = 0; i < packages.size(); ++i) visit(i);
+        const auto plan = detail::resolve(playset_file, playset);
+        const auto& packages = plan.packages;
+        const auto& order = plan.order;
 
         struct Prepared { const ModuleDescriptor* api; size_t package; };
         std::vector<Prepared> prepared;
@@ -117,6 +95,31 @@ void Runtime::load(const std::filesystem::path& playset_file) {
                 throw std::runtime_error("Manifest/descriptor identity or release mismatch: " + package.manifest.id);
             prepared.push_back({api, i});
         }
+        // The host owns persistence/restart callbacks; GUI DLLs only edit data and request.
+        ModSession session;
+        session.file = std::filesystem::absolute(playset_file).lexically_normal();
+        session.selected = playset;
+        const auto base = session.file.parent_path();
+        for (const auto& entry : discover(base / "Mods")) {
+            const auto path = entry.path.lexically_normal();
+            const bool listed = std::ranges::any_of(session.selected.mods, [&](const auto& selection) {
+                return (base / selection.manifest).lexically_normal() == path;
+            });
+            if (!listed) session.selected.mods.push_back({path.lexically_relative(base).generic_string(), false});
+        }
+        for (const auto& selection : session.selected.mods) {
+            CatalogEntry entry{(base / selection.manifest).lexically_normal(), {}, {}};
+            try { entry.manifest = read_manifest(entry.path); }
+            catch (const std::exception& error) { entry.error = error.what(); }
+            session.catalog.push_back(std::move(entry));
+        }
+        session.active = session.selected;
+        session.save_and_restart = [](ModSession& value) {
+            detail::resolve(value.file, value.selected); // Validate before replacing the saved selection.
+            save_playset(value.file, value.selected);
+            value.restart_requested = true;
+        };
+        impl_->app.add_resource(std::move(session));
         // ALL descriptors passed preflight and ALL libraries are pinned before installation begins.
         for (const auto& module : prepared) {
             const auto& package = packages[module.package];

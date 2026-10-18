@@ -29,6 +29,21 @@ registered settings panel and edit the same ECS resource. Gain, frequency, pause
 control a 512-sample signal updated by an ECS system. Windows can dock inside the application.
 No Fleet component, document, case format or rendering code is used by this tool.
 
+**Mods → Manage mods...** edits the playset and can restart this entire application.
+Try disabling Signal Workbench, save/restart, then enable it again. The same executable stays
+alive, but the old App/resources, retained GUI context and DLLs are destroyed before the next
+App is built. Tool settings reset. Dependency/save errors appear in the window and keep the
+current App running; native startup errors after restart exit through the host error handler.
+The save button writes the displayed playset, so use a writable copy when experimenting.
+Additional modules discovered under the playset's `Mods/` directory start disabled.
+
+Application-owned menu bars can reuse `elysia::gui::draw_mods_menu(context)` inside their
+`BeginMainMenuBar`/`EndMainMenuBar`. The standard GUI runner draws the associated editor window
+and notices `app::ModSession::restart_requested` at the end of the frame. A custom runner
+must likewise return after that request; its outer host must rebuild the Runtime. This menu
+is available only for playset-loaded Runtimes. Direct `run_composed()` clients, including Fleet,
+retain their existing behavior and do not acquire a misleading restart menu.
+
 To save a layout for a particular application/profile:
 
 ```sh
@@ -183,6 +198,7 @@ The Windows path is implemented but not runtime-tested here.
 build/linux/x86_64/release/elysia-gui-tests
 build/linux/x86_64/release/elysia-app-tests
 python3 tools/gui_smoke.py --bin build/linux/x86_64/release
+python3 tools/mod_reload_smoke.py --bin build/linux/x86_64/release # Linux X11/XWayland input test
 python3 tools/smoke.py --bin build/linux/x86_64/release
 ```
 

@@ -1,4 +1,5 @@
 #pragma once
+#include "session.hpp"
 #include <elysia/elysia.hpp>
 #include <bit>
 #include <cstdint>
@@ -54,6 +55,7 @@ constexpr uint64_t native_abi() {
     mix(sizeof(void*)); mix(std::endian::native == std::endian::little);
     mix(sizeof(App)); mix(sizeof(World)); mix(sizeof(Entity));
     mix(sizeof(std::string)); mix(sizeof(std::filesystem::path)); mix(sizeof(std::string_view));
+    mix(sizeof(ModSession));
     return hash;
 }
 
