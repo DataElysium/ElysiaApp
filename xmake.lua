@@ -149,3 +149,22 @@ if has_config("gui") then
         add_deps("elysia-app-sdk", "elysia-gui")
         add_files("modules/gui/tests/*.cpp")
 end
+
+-- Normal consumer workflow: build and install the configured SDK without repeating defaults.
+task("sdk")
+    set_category("plugin")
+    set_menu {usage="xmake sdk", description="Build and install the SDK into dist/sdk (dist/wgvk for WGVK).", options={}}
+    on_run(function ()
+        import("core.base.task")
+        import("core.project.config")
+        import("core.project.project")
+        task.run("config", {yes=true}, {disable_dump=true})
+        local targets={"elysia-app-sdk"}
+        if project.target("elysia-gui") then table.insert(targets,"elysia-gui") end
+        task.run("build", {targets=targets, jobs=6, yes=true})
+        local folder=config.get("renderer")=="wgvk" and "wgvk" or "sdk"
+        local prefix=path.join(os.projectdir(),"dist",folder)
+        task.run("install", {targets=targets, installdir=prefix, yes=true})
+        cprint("${green}SDK ready: ${clear}%s",prefix)
+    end)
+task_end()

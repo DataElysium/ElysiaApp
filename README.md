@@ -8,6 +8,25 @@ The generic host has no simulation, prefab, case-loader or ImGui code. Applicati
 register those capabilities themselves. This follows the reusable runner/case-loader
 approach in EMT-RS; it is broader than an editor-only extension API.
 
+## Use from Fleet or another application
+
+With ElysiaApp beside the matching ElysiaECS_Hpp and Fleet checkouts:
+
+```sh
+cd /home/cts/workspace/ElysiaApp
+xmake sdk
+cd ../ElysiaFleetNextGen
+xmake
+```
+
+`sdk` builds the base library and enabled GUI provider, then installs their headers,
+libraries and licenses into `dist/sdk`. It uses the configured compiler/backend and six
+build jobs. A fresh checkout uses release mode, the sibling ECS and OpenGL defaults.
+WGVK configurations install into `dist/wgvk`; headless configurations build the base SDK only.
+The command runs xmake's existing build/install tasks in one process, without configuring Fleet.
+Use ordinary `xmake f` only when changing a default or selecting optional features.
+Players need only the packaged game, not these checkouts or build commands.
+
 ## Build in this directory
 
 ```sh

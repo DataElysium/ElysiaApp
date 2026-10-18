@@ -13,8 +13,8 @@ replace earlier ones, exactly as in the existing App API.
 From the independent ElysiaApp project root:
 
 ```sh
-xmake f -P . -y -m release --gui=y --ecs=/home/cts/workspace/ElysiaECS_Hpp
-xmake build -P . -y -j6
+xmake sdk
+xmake
 build/linux/x86_64/release/elysia-app --playset build/linux/x86_64/release/sandbox/gui.json
 ```
 
@@ -146,7 +146,7 @@ same order, and native exceptions are copied into host-owned errors before DLL u
 ## Installed SDK / independently built tool
 
 ```sh
-xmake install -P . -y -o /home/cts/workspace/ElysiaApp/dist/sdk elysia-app-sdk elysia-gui
+xmake sdk
 ```
 
 The prefix includes the base SDK, `elysia_gui/` headers, matching ImGui headers, the GUI
