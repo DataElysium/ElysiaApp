@@ -19,7 +19,7 @@ else
     add_cxxflags("-fvisibility=hidden", "-fvisibility-inlines-hidden")
 end
 if has_config("gui") then add_requires("glfw 3.4", {system=false}) end
-add_requires("nameof", "taskflow", {system=false})
+add_requires("nameof", "taskflow", "yaml-cpp", {system=false})
 add_requires("reflect-cpp 0.24.0", {system=false, configs={msgpack=true, flatbuffers=true, toml=true}})
 add_requireconfs("reflect-cpp.**|cmake|ninja", {override=true, system=false})
 local ecs = path.absolute((get_config("ecs") or "../ElysiaECS_Hpp"))
@@ -150,6 +150,26 @@ if has_config("gui") then
         add_files("modules/gui/tests/*.cpp")
 end
 
+-- Localization is independent of GUI/rendering; YAML stays private to this provider.
+target("elysia-text")
+    set_kind("shared")
+    add_defines("ELYSIA_TEXT_BUILD")
+    add_includedirs("modules/text/include", {public=true})
+    add_files("modules/text/src/*.cpp")
+    add_packages("yaml-cpp")
+    add_headerfiles("modules/text/include/(elysia_text/*.hpp)")
+    add_installfiles("modules/text/LICENSE-yaml-cpp.txt", {prefixdir="share/licenses/elysia-text"})
+    if is_plat("linux") then
+        add_shflags("-Wl,-soname,libelysia-text.so", "-Wl,--exclude-libs,ALL")
+    end
+
+target("elysia-text-tests")
+    set_default(false)
+    set_kind("binary")
+    add_deps("elysia-text")
+    add_files("modules/text/tests/*.cpp")
+    if is_plat("linux") then add_rpathdirs("$ORIGIN") end
+
 -- Normal consumer workflow: build and install the configured SDK without repeating defaults.
 task("sdk")
     set_category("plugin")
@@ -159,7 +179,7 @@ task("sdk")
         import("core.project.config")
         import("core.project.project")
         task.run("config", {yes=true}, {disable_dump=true})
-        local targets={"elysia-app-sdk"}
+        local targets={"elysia-app-sdk", "elysia-text"}
         if project.target("elysia-gui") then table.insert(targets,"elysia-gui") end
         task.run("build", {targets=targets, jobs=6, yes=true})
         local folder=config.get("renderer")=="wgvk" and "wgvk" or "sdk"
@@ -167,6 +187,7 @@ task("sdk")
         -- Install the declared header tree without leaving headers removed by SDK reorganizations.
         os.rm(path.join(prefix,"include/elysia_app"))
         os.rm(path.join(prefix,"include/elysia_gui"))
+        os.rm(path.join(prefix,"include/elysia_text"))
         task.run("install", {targets=targets, installdir=prefix, yes=true})
         cprint("${green}SDK ready: ${clear}%s",prefix)
     end)

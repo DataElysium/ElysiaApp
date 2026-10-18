@@ -19,7 +19,7 @@ cd ../ElysiaFleetNextGen
 xmake
 ```
 
-`sdk` builds the base library and enabled GUI provider, then installs their headers,
+`sdk` builds the base library, text provider and enabled GUI provider, then installs their headers,
 libraries and licenses into `dist/sdk`. It uses the configured compiler/backend and six
 build jobs. A fresh checkout uses release mode, the sibling ECS and OpenGL defaults.
 WGVK configurations install into `dist/wgvk`; headless configurations build the base SDK only.
@@ -335,3 +335,11 @@ is OpenGL 3.3; the existing Fleet WGVK backend is also available behind the same
 Fleet now consumes the installed SDK through FleetClientPlugin in a local integration.
 The graphical playset/restart experiment is available in ElysiaApp; Fleet has not adopted
 this menu or the restart loop. Windows validation and production SDK version policy remain subsequent work. ECS module/Hpp repositories are unchanged.
+
+## Localization module
+
+`modules/text/` provides `elysia-text` and the public `elysia_text/catalog.hpp` contract.
+It is independent of GUI and rendering, and is installed by `xmake sdk`. UI hosts install
+`elysia::text::Plugin`, load optional YAML folders and select their own language. Source
+fallbacks and stable ImGui labels allow gradual migration. See [the module guide](modules/text/README.md).
+The parser remains private to this shared provider; game/simulation plugins need not link it.

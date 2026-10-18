@@ -34,3 +34,8 @@
 - Framework/example lifecycle and frame-statistics logging is opt-in through app::Diagnostics
   (--diagnostics in the generic host). Keep normal runs quiet; do not suppress actual errors or
   intentional application output. Tests that inspect diagnostics must explicitly enable them.
+
+- Localization is an independent provider in `modules/text/`; read its README before changing
+  language behavior. Public contract: `elysia_text/catalog.hpp`. YAML stays private to its
+  implementation. Catalog data belongs to the UI App; resolve languages between frames and
+  preserve symbolic widget IDs. Test with `elysia-text-tests`; sdk installs the provider.
