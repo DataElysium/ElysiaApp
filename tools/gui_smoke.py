@@ -22,12 +22,17 @@ with tempfile.TemporaryDirectory(prefix='elysia gui relocated ') as directory:
         target=package/'sandbox/Mods/workbench/Assemblies'/args.tool_library.name
         shutil.copy2(args.tool_library,target)
     elsewhere=work/'elsewhere';elsewhere.mkdir()
-    def execute(playset,extra,environment=None):
-        return subprocess.run([str(package/('elysia-app'+suffix)),'--playset',str(package/'sandbox'/playset),'--',*extra],
+    def execute(playset,extra,environment=None,diagnostics=False):
+        options=['--diagnostics'] if diagnostics else []
+        return subprocess.run([str(package/('elysia-app'+suffix)),'--playset',str(package/'sandbox'/playset),*options,'--',*extra],
                               cwd=elsewhere,env=environment,capture_output=True,text=True,timeout=40)
+    quiet=execute('gui.json',['--gui-hidden','--gui-frames','2'])
+    assert quiet.returncode==0,(quiet.stdout,quiet.stderr)
+    assert quiet.stdout=='' and quiet.stderr=='',(quiet.stdout,quiet.stderr)
+    print('PASS default GUI run produces no lifecycle/frame logs')
     for playset in ('gui.json','gui-simulation.json'):
         report=work/'report.json';capture=output/(playset+'.ppm')
-        result=execute(playset,['--gui-hidden','--gui-frames','16','--gui-capture',str(capture),'--scope-report',str(report)])
+        result=execute(playset,['--gui-hidden','--gui-frames','16','--gui-capture',str(capture),'--scope-report',str(report)],diagnostics=True)
         assert result.returncode==0,(result.returncode,result.stdout,result.stderr)
         assert capture.read_bytes().startswith(b'P6\n1440 900\n'),capture
         state=json.loads(report.read_text())
@@ -37,7 +42,7 @@ with tempfile.TemporaryDirectory(prefix='elysia gui relocated ') as directory:
         assert 'ticks=4' not in result.stdout,'GUI runner did not override the earlier headless runner'
         print('PASS',playset,': real OpenGL rendering, shared ImGui, DLL window + texture, retained context teardown')
     no_display={key:value for key,value in os.environ.items() if key not in ('DISPLAY','WAYLAND_DISPLAY')}
-    result=execute('headless-last.json',[],no_display)
+    result=execute('headless-last.json',[],no_display,diagnostics=True)
     assert result.returncode==0,(result.stdout,result.stderr)
     assert 'ticks=4' in result.stdout and 'GUI frames=' not in result.stdout,result.stdout
     assert 'context=absent' in result.stdout,result.stdout
@@ -63,5 +68,6 @@ with tempfile.TemporaryDirectory(prefix='elysia gui relocated ') as directory:
     assert result.returncode==0,(result.stdout,result.stderr)
     state=json.loads(report.read_text())
     assert state['context_alive'] and state['drawings']==4,state
+    assert result.stdout=='' and result.stderr=='',(result.stdout,result.stderr)
     print('PASS GUI provider/tool with generated native descriptors and packaging-only manifests')
     if args.tool_library:print('PASS independently built tool DLL / layered GUI SDK')

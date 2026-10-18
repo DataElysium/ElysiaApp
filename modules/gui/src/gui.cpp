@@ -14,6 +14,7 @@ namespace {
 struct Settings {
     render::Options surface;
     int frames = 0;
+    bool diagnostics = false;
     std::filesystem::path capture, layout, font;
 };
 Settings settings(App& app, const Options& defaults) {
@@ -22,6 +23,8 @@ Settings settings(App& app, const Options& defaults) {
                       defaults.hidden, defaults.vsync, defaults.x11};
     result.layout = defaults.layout;
     result.font = defaults.font;
+    if (const auto* diagnostics = app.world().resources().get<app::Diagnostics>())
+        result.diagnostics = diagnostics->enabled;
     if (const auto* args = app.world().resources().get<app::Arguments>()) {
         for (size_t i = 0; i < args->values.size(); ++i) {
             const auto& option = args->values[i];
@@ -69,8 +72,10 @@ struct Session {
             ImGui::SetCurrentContext(context);
             surface.reset();
             ImGui::DestroyContext(context);
-            std::fprintf(stdout, "GUI context destroyed after App resources\n");
-            std::fflush(stdout);
+            if (options.diagnostics) {
+                std::fprintf(stdout, "GUI context destroyed after App resources\n");
+                std::fflush(stdout);
+            }
         }
     }
     void initialize() {
@@ -185,7 +190,8 @@ void run(App& app) {
             ImGui::EndFrame();
             throw;
         }
-        vertices += ImGui::GetDrawData()->TotalVtxCount;
+        if (session.options.diagnostics)
+            vertices += ImGui::GetDrawData()->TotalVtxCount;
         const bool rendered = session.surface->draw(ImGui::GetDrawData());
         ++frames;
         if (rendered && !session.options.capture.empty() && frames == session.options.frames)
@@ -200,9 +206,10 @@ void run(App& app) {
             mods && mods->restart_requested)
             session.quit = true;
     }
-    std::fprintf(stdout, "GUI frames=%d vertices=%llu windows=%zu renderer=%s\n", frames,
-                 static_cast<unsigned long long>(vertices), windows.window_count(),
-                 render::Surface::name());
+    if (session.options.diagnostics)
+        std::fprintf(stdout, "GUI frames=%d vertices=%llu windows=%zu renderer=%s\n", frames,
+                     static_cast<unsigned long long>(vertices), windows.window_count(),
+                     render::Surface::name());
 }
 void quit(App& app) {
     auto* service = app.world().resources().get<Service>();

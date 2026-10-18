@@ -95,6 +95,11 @@ Playset descriptor paths are relative to the playset, and library paths to the m
 The packaged application can move and run from an unrelated working directory. Explicit
 relative `--case` paths belong to the plugin CLI and are relative to the working directory.
 
+Normal GUI runs are quiet: lifecycle messages and frame/vertex statistics are disabled by default.
+Enable them deliberately with the host option `--diagnostics` (before the plugin `--` delimiter).
+Errors still go to stderr, and explicit `--help`/`--list` output and simulation-example results
+remain application output. Directly composed hosts may add `app::Diagnostics{true}` before plugins.
+
 ## Files and contracts
 
 ```text
@@ -125,7 +130,7 @@ Choose headers by the work you are doing:
 | --- | --- | --- |
 | Export a DLL mod | `elysia_app/module.hpp` | `ELYSIA_APP_EXPORT`, `ModuleDescriptor`, `ModuleContext` |
 | Write a host executable | `elysia_app/runtime.hpp` | `Runtime`, `run_cli` |
-| Read plugin arguments | `elysia_app/application.hpp` | `Arguments` |
+| Read plugin arguments or opt into diagnostics | `elysia_app/application.hpp` | `Arguments`, `Diagnostics` |
 | Retain renderer infrastructure through App teardown | `elysia_app/application.hpp` | `AfterAppLifetime` |
 | Browse packages or save enabled/load-order lists | `elysia_app/mod_catalog.hpp` | `Manifest`, `Playset`, `discover`, read/save functions |
 | Build a mod-selection/restart UI | `elysia_app/mod_selection.hpp` | `ModSession` |
@@ -157,6 +162,24 @@ registration macro, separate traits class, static registration side effect, or m
 The plugin only provides its ordinary `build(App&)`. If it needs the package directory, give it a
 constructor taking `const ModuleContext&`; installation passes that context automatically. Copy
 borrowed paths/strings into state that survives installation.
+
+Optional native metadata uses a read-only array of UTF-8, null-terminated string pairs:
+
+```cpp
+static constexpr elysia::app::MetadataEntry metadata[] = {
+    {"fleet.side", "client"},
+};
+static constexpr auto descriptor = elysia::app::module<MyPlugin>(metadata);
+```
+
+The descriptor exposes only a pointer and a `uint32_t` count, without an STL container or
+cross-library allocation. Keep the array and strings alive with the descriptor. Keys must be
+nonempty and values non-null; empty values are allowed. Values are opaque strings, not CSV or
+JSON parsed by the SDK: application loaders decide what keys such as `fleet.side` mean. Metadata
+does not add installation callbacks or require corresponding fields in the manifest.
+`Runtime::modules()` exposes host-owned string copies; copying a loaded module's metadata keeps
+it valid after DLL unload. Static registration also copies the caller's array and strings.
+For a static alias, use `module<MyPlugin>(metadata, "package.id")`.
 
 The package ID defaults to the manifest's folder name; it can be overridden by `id` for dependency
 naming. That alias is independent of the C++ type name. A manifest can override the display `name`;

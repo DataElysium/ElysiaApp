@@ -45,7 +45,7 @@ try:
         original = playset.read_bytes()
         report, log = work / 'report.json', work / 'app.log'
         with log.open('w') as output:
-            proc = subprocess.Popen([str(work / 'elysia-app'), '--playset', str(playset), '--',
+            proc = subprocess.Popen([str(work / 'elysia-app'), '--playset', str(playset), '--diagnostics', '--',
                                      '--scope-report', str(report)], cwd=work,
                                     stdout=output, stderr=subprocess.STDOUT)
         try:

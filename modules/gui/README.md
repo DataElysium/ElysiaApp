@@ -76,6 +76,12 @@ build/linux/x86_64/release/elysia-app --playset build/linux/x86_64/release/sandb
   -- --gui-layout /path/to/my-layout.ini
 ```
 
+Lifecycle and frame-statistics logs are off by default. The host option `--diagnostics` enables
+them explicitly; for example, put it before `--` in the command above. Test scripts that inspect
+teardown logs opt in. A requested `--scope-report FILE` writes its report independently of logging.
+Failures still report their errors. Direct hosts can set the `app::Diagnostics{true}` resource
+before installing GUI/tool plugins; absent/disabled resources keep diagnostics off.
+
 GUI-specific arguments belong to the GUI module: `--gui-font FILE`, `--gui-hidden`,
 `--gui-no-vsync`, and `--gui-frames N`. For a bounded diagnostic run, add
 `--gui-capture /path/to/frame.ppm`; capture requires `--gui-frames`.

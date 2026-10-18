@@ -1,9 +1,9 @@
 #pragma once
 /** @file application.hpp
  * Resources shared between the host and installed plugins.
- * Arguments exposes plugin CLI arguments; AfterAppLifetime retains infrastructure until App
- * teardown. Ordinary plugins keep their own state in App resources; only infrastructure needs the
- * latter.
+ * Arguments exposes plugin CLI arguments; Diagnostics enables optional logs; AfterAppLifetime
+ * retains infrastructure until App teardown. Ordinary plugins keep their own state in App
+ * resources; only infrastructure needs the latter.
  */
 #include <memory>
 #include <string>
@@ -27,5 +27,13 @@ struct AfterAppLifetime {
 /** Arguments after the host's '--' delimiter; interpreted exclusively by application plugins. */
 struct Arguments {
     std::vector<std::string> values;
+};
+
+/** Optional lifecycle/frame diagnostics. Absent or disabled means quiet operation.
+ * The generic host enables this with --diagnostics. Explicit errors and application results
+ * are unaffected. Plugins may copy the flag for use during their own destruction.
+ */
+struct Diagnostics {
+    bool enabled = false;
 };
 } // namespace elysia::app

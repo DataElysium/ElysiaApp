@@ -26,5 +26,7 @@ struct Trace {
 struct SimulationPlugin {
     void build(elysia::App&) const;
 };
+inline constexpr elysia::app::MetadataEntry simulation_metadata[] = {
+    {"demo.capabilities", "prefab,simulation"}};
 const elysia::app::ModuleDescriptor& simulation_module();
 } // namespace demo

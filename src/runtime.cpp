@@ -10,6 +10,13 @@
 
 namespace elysia::app {
 namespace {
+std::vector<ModuleMetadata> copy_metadata(const ModuleDescriptor& api) {
+    std::vector<ModuleMetadata> result;
+    result.reserve(api.metadata_count);
+    for (uint32_t i = 0; i < api.metadata_count; ++i)
+        result.push_back({api.metadata[i].key, api.metadata[i].value});
+    return result;
+}
 // Exception vtables/destructors can belong to a DLL too. Destroy the original exception while
 // its library is pinned; only host-owned exceptions may escape Runtime's public call boundary.
 template <class F> decltype(auto) native_call(std::string_view owner, F&& function) {
@@ -41,10 +48,18 @@ struct Runtime::Impl {
     } owners;
     struct StaticModule {
         std::string name, release;
+        std::vector<ModuleMetadata> metadata;
+        std::vector<MetadataEntry> metadata_entries;
         ModuleDescriptor api;
         explicit StaticModule(const ModuleDescriptor& descriptor)
             : name(descriptor.name ? descriptor.name : descriptor.id),
-              release(descriptor.release ? descriptor.release : ""), api(descriptor) {}
+              release(descriptor.release ? descriptor.release : ""),
+              metadata(copy_metadata(descriptor)), api(descriptor) {
+            metadata_entries.reserve(metadata.size());
+            for (const auto& entry : metadata)
+                metadata_entries.push_back({entry.key.c_str(), entry.value.c_str()});
+            api.metadata = metadata_entries.data();
+        }
     };
     std::map<std::string, StaticModule> statics;
     std::vector<LoadedModule> modules;
@@ -175,8 +190,9 @@ void Runtime::load(const std::filesystem::path& playset_file) {
         // ALL descriptors passed preflight and ALL libraries are pinned before installation begins.
         for (const auto& module : prepared) {
             const auto& package = packages[module.package];
-            impl_->modules.push_back(
-                {package.manifest.id, package.root, !package.manifest.libraries.empty()});
+            impl_->modules.push_back({package.manifest.id, package.root,
+                                      !package.manifest.libraries.empty(),
+                                      copy_metadata(*module.api)});
             const ModuleContext context{package.manifest.id, package.root};
             native_call(package.manifest.id, [&] {
                 module.api->install(impl_->app, context);

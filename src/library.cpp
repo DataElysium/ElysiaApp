@@ -73,5 +73,12 @@ void validate(const ModuleDescriptor& api) {
     if ((api.id && !valid_id(api.id)) || (api.name && !*api.name) ||
         (api.release && !*api.release) || !api.install)
         throw std::runtime_error("Invalid native module descriptor");
+    if (api.metadata_count && !api.metadata)
+        throw std::runtime_error("Module metadata array is null");
+    for (uint32_t i = 0; i < api.metadata_count; ++i) {
+        const auto& entry = api.metadata[i];
+        if (!entry.key || !*entry.key || !entry.value)
+            throw std::runtime_error("Module metadata requires a nonempty key and a value");
+    }
 }
 } // namespace elysia::app::detail

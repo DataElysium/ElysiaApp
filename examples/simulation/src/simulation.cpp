@@ -53,7 +53,8 @@ void SimulationPlugin::build(elysia::App& app) const {
     });
 }
 const elysia::app::ModuleDescriptor& simulation_module() {
-    static constexpr auto descriptor = elysia::app::module<SimulationPlugin>("demo.simulation");
+    static constexpr auto descriptor =
+        elysia::app::module<SimulationPlugin>(simulation_metadata, "demo.simulation");
     return descriptor;
 }
 } // namespace demo

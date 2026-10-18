@@ -11,6 +11,7 @@ namespace gui = elysia::gui;
 struct Scope {
     float gain = 1, frequency = 2;
     bool paused = false;
+    bool diagnostics = false;
     double time = 0;
     std::array<float, 512> samples{};
     int drawings = 0;
@@ -18,8 +19,9 @@ struct Scope {
     std::filesystem::path report;
     ~Scope() {
         const bool alive = ImGui::GetCurrentContext() != nullptr;
-        std::fprintf(stdout, "Workbench destroyed: drawings=%d context=%s\n", drawings,
-                     alive ? "alive" : "absent");
+        if (diagnostics)
+            std::fprintf(stdout, "Workbench destroyed: drawings=%d context=%s\n", drawings,
+                         alive ? "alive" : "absent");
         if (!report.empty()) {
             std::ofstream out(report);
             out << "{\"drawings\":" << drawings
@@ -79,6 +81,8 @@ struct Plugin {
     void build(elysia::App& app) const {
         auto& windows = gui::registry(app);
         auto& state = *app.world().resources().get_or_create<Scope>();
+        if (const auto* diagnostics = app.world().resources().get<elysia::app::Diagnostics>())
+            state.diagnostics = diagnostics->enabled;
         if (auto* args = app.world().resources().get<elysia::app::Arguments>())
             for (size_t i = 0; i < args->values.size(); ++i)
                 if (args->values[i] == "--scope-report") {

@@ -10,6 +10,7 @@ int run_cli(int argc, char** argv, std::span<const ModuleDescriptor* const> buil
     try {
         std::filesystem::path playset, listing;
         Arguments arguments;
+        Diagnostics diagnostics;
         for (int i = 1; i < argc; ++i) {
             const std::string_view option = argv[i];
             if (option == "--") {
@@ -18,9 +19,14 @@ int run_cli(int argc, char** argv, std::span<const ModuleDescriptor* const> buil
                 break;
             }
             if (option == "--help") {
-                std::cout << "Usage: elysia-app --playset FILE [-- PLUGIN_ARGUMENTS...]\n"
-                             "       elysia-app --list MOD_DIRECTORY\n";
+                std::cout
+                    << "Usage: elysia-app --playset FILE [--diagnostics] [-- PLUGIN_ARGUMENTS...]\n"
+                       "       elysia-app --list MOD_DIRECTORY\n";
                 return 0;
+            }
+            if (option == "--diagnostics") {
+                diagnostics.enabled = true;
+                continue;
             }
             if ((option == "--playset" || option == "--list") && i + 1 < argc) {
                 auto& target = option == "--playset" ? playset : listing;
@@ -50,6 +56,7 @@ int run_cli(int argc, char** argv, std::span<const ModuleDescriptor* const> buil
             // before constructing the next Runtime. Never reload from inside a callback.
             Runtime runtime;
             runtime.app().add_resource(arguments);
+            runtime.app().add_resource(diagnostics);
             for (const auto* descriptor : builtins) {
                 if (!descriptor)
                     throw std::invalid_argument("Null static descriptor");

@@ -17,6 +17,7 @@ int main(int argc, char** argv) {
         lifetime_tests(bin);
         auto trace = std::make_shared<std::vector<std::string>>();
         for (bool dynamic : {false, true}) {
+            std::vector<elysia::app::ModuleMetadata> metadata;
             {
                 elysia::app::Runtime runtime;
                 runtime.app().add_resource(demo::Trace{trace});
@@ -37,7 +38,11 @@ int main(int argc, char** argv) {
                         "Cross-module prefab registration, spawn or simulation mismatch");
                 if (runtime.modules().size() != 2 || runtime.modules()[0].id != "demo.simulation")
                     throw std::runtime_error("Dependency order was not respected");
+                metadata = runtime.modules()[0].metadata;
             }
+            if (metadata.size() != 1 || metadata[0].key != "demo.capabilities" ||
+                metadata[0].value != "prefab,simulation")
+                throw std::runtime_error("Module metadata did not survive static/DLL teardown");
             if (trace->empty() || trace->back() != "simulation.destroyed")
                 throw std::runtime_error("DLL-owned resource was not destroyed");
         }

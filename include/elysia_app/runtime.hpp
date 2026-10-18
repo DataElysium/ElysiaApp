@@ -6,12 +6,19 @@
 #include "module.hpp"
 #include <memory>
 #include <span>
+#include <string>
+#include <vector>
 
 namespace elysia::app {
+/** Host-owned copy of a descriptor property; safe to retain after unloading its DLL. */
+struct ModuleMetadata {
+    std::string key, value;
+};
 struct LoadedModule {
     std::string id;
     std::filesystem::path directory;
     bool dynamic;
+    std::vector<ModuleMetadata> metadata;
 };
 /** Owns the App and all loaded libraries. App callbacks, executors, entities and resources
  * are destroyed before any library unloads, including after failed installation or execution.
@@ -43,7 +50,7 @@ public:
     void run_composed();
     std::span<const LoadedModule> modules() const;
 };
-/** Minimal reusable executable entry. Host flags: --playset FILE, --list DIRECTORY, --help.
+/** Minimal executable entry. Host flags: --playset FILE, --list DIRECTORY, --diagnostics, --help.
  * The host rebuilds the entire Runtime when ModSession requests restart.
  * Plugin arguments follow '--'. Errors return nonzero; no domain-specific case parsing occurs here.
  */

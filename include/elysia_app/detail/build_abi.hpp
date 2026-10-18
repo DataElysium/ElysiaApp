@@ -14,7 +14,7 @@
 namespace elysia::app {
 namespace detail {
 // Increment when changing shared SDK contracts that are not represented by the sizes below.
-inline constexpr uint32_t sdk_contract_revision = 3;
+inline constexpr uint32_t sdk_contract_revision = 4;
 } // namespace detail
 /** Detect common native-build mismatches, not arbitrary compiler/header compatibility.
  * All modules must use the host SDK, ECS, dependency headers, compiler, CRT and ABI options.

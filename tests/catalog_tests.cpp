@@ -45,11 +45,18 @@ void catalog_tests() {
         runtime.app().add_resource(Log{});
         {
             std::string id = "alpha", name = "Temporary metadata", release = "1";
+            std::string key = "fleet.side", value = "server";
+            MetadataEntry metadata[] = {{key.c_str(), value.c_str()}};
             auto temporary_api = alpha_api;
             temporary_api.id = id.c_str();
             temporary_api.name = name.c_str();
             temporary_api.release = release.c_str();
+            temporary_api.metadata = metadata;
+            temporary_api.metadata_count = 1;
             runtime.register_static(temporary_api);
+            key.assign("changed");
+            value.assign("changed");
+            metadata[0] = {nullptr, nullptr};
         }
         runtime.register_static(beta_api);
         test::rejects(
@@ -65,6 +72,10 @@ void catalog_tests() {
         runtime.load(file);
         test::require(runtime.modules()[0].id == "alpha" && !runtime.modules()[0].dynamic,
                       "Static dependency-first loading failed");
+        test::require(runtime.modules()[0].metadata.size() == 1 &&
+                          runtime.modules()[0].metadata[0].key == "fleet.side" &&
+                          runtime.modules()[0].metadata[0].value == "server",
+                      "Static registration borrowed the caller's metadata array or strings");
         auto& session = *runtime.app().world().resources().get<ModSession>();
         session.selected.mods[1].enabled = false;
         test::rejects(

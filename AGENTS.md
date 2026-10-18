@@ -31,3 +31,6 @@
   installs the existing App plugin. Keep package aliases, display overrides and optional releases
   in manifests; do not require duplicate metadata in native code. Use a pinned package ID only
   when registering static implementations or deliberately constraining a custom descriptor.
+- Framework/example lifecycle and frame-statistics logging is opt-in through app::Diagnostics
+  (--diagnostics in the generic host). Keep normal runs quiet; do not suppress actual errors or
+  intentional application output. Tests that inspect diagnostics must explicitly enable them.
