@@ -92,8 +92,12 @@ struct Session {
         auto font = options.font;
         if (font.empty()) {
 #ifdef _WIN32
-            if (const char* directory = std::getenv("WINDIR"))
-                font = std::filesystem::path(directory) / "Fonts/segoeui.ttf";
+            // Microsoft YaHei ships with Windows and carries CJK glyphs Segoe UI lacks.
+            if (const char* directory = std::getenv("WINDIR")) {
+                font = std::filesystem::path(directory) / "Fonts/msyh.ttc";
+                if (!std::filesystem::is_regular_file(font))
+                    font = std::filesystem::path(directory) / "Fonts/segoeui.ttf";
+            }
 #else
             for (const char* path : {"/usr/share/fonts/noto/NotoSans-Regular.ttf",
                                      "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"})
