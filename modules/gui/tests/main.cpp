@@ -3,6 +3,7 @@
 #include <elysia_gui/gui.hpp>
 #include <iostream>
 #include <stdexcept>
+void localization_check();
 namespace {
 int panels = 0;
 bool clicked = false;
@@ -121,6 +122,7 @@ int main(int argc, char** argv) {
         frame();
         if (!clicked)
             throw std::runtime_error("ImGui input did not reach the registered panel");
+        localization_check();
         elysia::gui::Image image;
         rejects([&] {
             image.upload(0, 0, {});

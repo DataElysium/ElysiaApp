@@ -1,10 +1,30 @@
 # Elysia text module
 
+Start with the [buildable localized window](../../examples/localization/README.md):
+`xmake build -P . -y -j6 elysia-text-example`, then `xmake run -P . elysia-text-example`
+from the ElysiaApp root. It includes English/French/Chinese dictionaries and a language selector.
+Chinese requires a CJK font; the example guide shows the font option.
+
+For ordinary ImGui text, the optional `<elysia_gui/text.hpp>` supplies drawing functions:
+
+```cpp
+elysia::gui::text(text, {"demo.greeting", "Welcome"});
+elysia::gui::text_wrapped(text, {"demo.help", "Choose a language, then press Start."});
+if (ImGui::Button(text.label({"demo.start", "Start"}))) {
+    // Existing operation.
+}
+```
+
+Link both `elysia-gui` and `elysia-text` for this adapter. It is not included by `gui.hpp`, so
+existing GUI consumers do not acquire a text dependency. The adapter draws strings literally;
+use existing ImGui formatting calls explicitly when inserting numbers or other arguments.
+
 `elysia-text` is a renderer-independent localization library. `xmake sdk` installs its shared
 library, `elysia_text/catalog.hpp` and yaml-cpp's license. YAML is statically linked into this
 provider; consumer DLLs neither include yaml-cpp nor build another parser.
 
 Install `elysia::text::Plugin{}` in the UI App, then use its `Catalog` resource on the UI thread.
+Alternatively, create a `Catalog` directly in an ordinary tool: ECS is not required for lookup.
 The owning process must keep the provider loaded until App resources are destroyed, as with
 the GUI provider. Fleet links both providers normally; they are runtime bundle dependencies.
 

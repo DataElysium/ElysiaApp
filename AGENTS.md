@@ -39,3 +39,5 @@
   language behavior. Public contract: `elysia_text/catalog.hpp`. YAML stays private to its
   implementation. Catalog data belongs to the UI App; resolve languages between frames and
   preserve symbolic widget IDs. Test with `elysia-text-tests`; sdk installs the provider.
+  The runnable example is `examples/localization/` (`elysia-text-example`). Optional localized
+  ImGui drawing helpers live in `elysia_gui/text.hpp`; do not add a text dependency to gui.hpp.

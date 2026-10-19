@@ -1,0 +1,8 @@
+_name: "Français"
+demo.window: "Exemple de traduction"
+demo.language: "Langue"
+demo.greeting: "Bienvenue à bord."
+demo.help: "Changez de langue, puis essayez le bouton. L'état de l'application reste inchangé."
+demo.start: "Démarrer"
+demo.running: "En cours"
+demo.stopped: "À l'arrêt"

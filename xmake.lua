@@ -146,8 +146,17 @@ if has_config("gui") then
 
     target("elysia-gui-tests")
         set_kind("binary")
-        add_deps("elysia-app-sdk", "elysia-gui")
+        add_deps("elysia-app-sdk", "elysia-gui", "elysia-text")
         add_files("modules/gui/tests/*.cpp")
+
+    target("elysia-text-example")
+        set_default(false)
+        set_kind("binary")
+        add_deps("elysia-app-sdk", "elysia-gui", "elysia-text")
+        add_files("examples/localization/main.cpp")
+        set_rundir("$(projectdir)")
+        set_runargs(path.absolute("examples/localization/locales"))
+        if is_plat("linux") then add_rpathdirs("$ORIGIN") end
 end
 
 -- Localization is independent of GUI/rendering; YAML stays private to this provider.

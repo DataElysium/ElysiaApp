@@ -343,3 +343,8 @@ It is independent of GUI and rendering, and is installed by `xmake sdk`. UI host
 `elysia::text::Plugin`, load optional YAML folders and select their own language. Source
 fallbacks and stable ImGui labels allow gradual migration. See [the module guide](modules/text/README.md).
 The parser remains private to this shared provider; game/simulation plugins need not link it.
+
+For a complete runnable window, see [the localization example](examples/localization/README.md).
+Build `elysia-text-example` and run `xmake run -P . elysia-text-example`.
+The optional `<elysia_gui/text.hpp>` adapter provides `gui::text` and `gui::text_wrapped`;
+ordinary ImGui controls use the catalog's stable `label()` function.
