@@ -1,66 +1,91 @@
 # Elysia text module
 
-Start with the [buildable localized window](../../examples/localization/README.md):
-`xmake build -P . -y -j6 elysia-text-example`, then `xmake run -P . elysia-text-example`
-from the ElysiaApp root. It includes English/French/Chinese dictionaries and a language selector.
-Chinese requires a CJK font; the example guide shows the font option.
-
-For ordinary ImGui text, the optional `<elysia_gui/text.hpp>` supplies drawing functions:
+`elysia-text` provides `elysia::text::I18nManager` in `<elysia_text/i18n.hpp>`.
+It owns the current language and loaded dictionaries. It contains no GUI widgets or renderer.
 
 ```cpp
-elysia::gui::text(text, {"demo.greeting", "Welcome"});
-elysia::gui::text_wrapped(text, {"demo.help", "Choose a language, then press Start."});
-if (ImGui::Button(text.label({"demo.start", "Start"}))) {
+#include <elysia_text/i18n.hpp>
+
+elysia::text::I18nManager i18n;
+i18n.load(locale_directory);
+i18n.select("zh-CN");
+
+// Inside a panel: TR is a reference, not a global function or singleton.
+const auto& TR = i18n;
+ImGui::TextUnformatted(TR("Welcome"));
+ImGui::TextWrapped("%s", TR("demo.help", "Choose a language, then press Start."));
+if (ImGui::Button(TR.t_id("Start"))) {
     // Existing operation.
 }
 ```
 
-Link both `elysia-gui` and `elysia-text` for this adapter. It is not included by `gui.hpp`, so
-existing GUI consumers do not acquire a text dependency. The adapter draws strings literally;
-use existing ImGui formatting calls explicitly when inserting numbers or other arguments.
+`TR("Welcome")` uses the English text as its lookup key and fallback, like RTScope.
+`TR("demo.help", "Choose a language, then press Start.")` uses an explicit stable key and
+English fallback. Both query the same dictionary and selected language. The named
+`i18n.translate(key, fallback)` method is equivalent to the call operator.
 
-`elysia-text` is a renderer-independent localization library. `xmake sdk` installs its shared
-library, `elysia_text/catalog.hpp` and yaml-cpp's license. YAML is statically linked into this
-provider; consumer DLLs neither include yaml-cpp nor build another parser.
+`TR.t_id(key, fallback)` returns the translation followed by `###key` to keep an ImGui
+control's ID stable when its caption changes. Repeated rows still need their normal `PushID`
+scopes. Use ordinary ImGui functions for all drawing. Pass translated text through
+`TextUnformatted` or a `%s` argument when it is not meant to be a printf format string.
 
-Install `elysia::text::Plugin{}` in the UI App, then use its `Catalog` resource on the UI thread.
-Alternatively, create a `Catalog` directly in an ordinary tool: ECS is not required for lookup.
-The owning process must keep the provider loaded until App resources are destroyed, as with
-the GUI provider. Fleet links both providers normally; they are runtime bundle dependencies.
+## Dictionaries
 
-```cpp
-app.add_plugin(elysia::text::Plugin{});
-auto& text = *app.world().resources().get<elysia::text::Catalog>();
-text.load(data_directory / "locales");
-text.select("zh-CN");
-// Inside the UI frame:
-ImGui::TextUnformatted(text.get({"demo.greeting", "Welcome"}));
-ImGui::Button(text.label({"demo.play", "Play"}));
-```
-
-A folder contains `en.yaml`, `zh-CN.yaml`, etc. It is optional. Files are flat string mappings:
+A folder contains `en.yaml`, `zh-CN.yaml`, etc. Files are flat string mappings:
 
 ```yaml
-_name: "简体中文" # Optional native language name in the selector.
-demo.greeting: "欢迎"
-demo.play: "开始"
+_name: "简体中文"
+Welcome: "欢迎"
+Start: "开始"
+demo.help: "请选择语言，再按开始。"
 demo.briefing: |
   第一行。
   第二行。
 ```
 
-Keys are stable symbols; values are display text. English can live in source fallbacks, so an
-English YAML file may contain only `_name: English`. Later package dictionaries override earlier
-keys in load/dependency order. Prefix mod-owned keys to avoid accidental collisions; intentional
-translation packs may override host keys. A malformed package is rejected before live text changes.
+The filename is the language ID; `_name` is its name in the language selector. New languages
+require only another file, not an enum or C++ change. English can live in source fallbacks,
+so `en.yaml` may contain only `_name: English`. Resolution is selected language, then English,
+then the source fallback (or key when omitted).
 
-`get` resolves selected locale, then English, then the supplied source fallback. `label` adds
-`###id` for ImGui and caches the result. Repeated rows still need normal `PushID` scopes. Never
-cache returned pointers across `load` or `select`; apply language requests between frames.
-The catalog owns all loaded strings. Dictionaries do not retain memory from the requesting DLL.
-This first module handles text lookup, not plural rules, shaping or game event serialization.
+Later package dictionaries override earlier keys in load/dependency order. Prefix mod-owned
+symbolic keys to avoid accidental collisions; intentional translation packs may override host
+keys. Invalid files leave the complete live manager unchanged. A missing folder is optional.
+Loaded strings are copied and owned by the manager, not borrowed from YAML or a requesting DLL.
+
+## App resource and DLLs
+
+Initialize once in the UI App:
+
+```cpp
+app.add_plugin(elysia::text::Plugin{});
+auto& i18n = *app.world().resources().get<elysia::text::I18nManager>();
+i18n.load(locale_directory);
+i18n.select("zh-CN");
+```
+
+Panels and DLL tools get a reference to that resource and name it `TR` locally. Independent
+Apps have independent managers; rebuilding an App discards its old dictionaries. There is no
+process-wide or per-DLL singleton, implicit active-manager binding, or thread-local manager.
+An ordinary tool can also construct an `I18nManager` directly, without ECS.
+
+Use the resource on the UI thread. Apply `load` and `select` between frames; returned string
+pointers must not be kept across either operation. Unresolved fallback pointers are borrowed
+from the caller. The shared provider must remain loaded until the manager and its consumers
+have been destroyed. YAML stays private to the provider; consumers include no parser headers.
+
+`xmake sdk` installs the library, public header and yaml-cpp's license. UI consumers link
+`elysia-text`; ImGui applications also use the existing GUI provider. No drawing adapter is
+needed. This module does not implement plural rules, shaping or event serialization.
+
+## Run the example
+
+From the ElysiaApp root:
 
 ```sh
-xmake build -P . -y -j6 elysia-text-tests
-./build/linux/x86_64/release/elysia-text-tests
+xmake build -P . -y -j6 elysia-text-example elysia-text-tests
+xmake run -P . elysia-text-example
+xmake run -P . elysia-text-tests
 ```
+
+See the [window example](../../examples/localization/README.md) for Chinese font selection.

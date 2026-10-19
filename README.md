@@ -338,13 +338,11 @@ this menu or the restart loop. Windows validation and production SDK version pol
 
 ## Localization module
 
-`modules/text/` provides `elysia-text` and the public `elysia_text/catalog.hpp` contract.
-It is independent of GUI and rendering, and is installed by `xmake sdk`. UI hosts install
-`elysia::text::Plugin`, load optional YAML folders and select their own language. Source
-fallbacks and stable ImGui labels allow gradual migration. See [the module guide](modules/text/README.md).
-The parser remains private to this shared provider; game/simulation plugins need not link it.
+`modules/text/` provides the App resource `elysia::text::I18nManager` in `<elysia_text/i18n.hpp>`.
+Load YAML dictionaries and select the language once; panels bind `const auto& TR = i18n` and use
+`TR("Welcome")` or `TR("demo.greeting", "Welcome")` in ordinary ImGui calls. `TR.t_id(...)`
+adds a stable widget ID. There is no global singleton or separate GUI drawing API.
 
-For a complete runnable window, see [the localization example](examples/localization/README.md).
-Build `elysia-text-example` and run `xmake run -P . elysia-text-example`.
-The optional `<elysia_gui/text.hpp>` adapter provides `gui::text` and `gui::text_wrapped`;
-ordinary ImGui controls use the catalog's stable `label()` function.
+The [module guide](modules/text/README.md) describes lookup, language packs and resource lifetime.
+The [runnable example](examples/localization/README.md) builds as `elysia-text-example`.
+`xmake sdk` installs the provider; the YAML parser remains private to it.

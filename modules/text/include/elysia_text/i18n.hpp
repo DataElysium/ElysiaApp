@@ -1,8 +1,8 @@
 #pragma once
-/** @file catalog.hpp
+/** @file i18n.hpp
  * UI-thread localization resource. YAML is parsed only by load(); drawing reads owned strings.
  * Call load/select between frames. Returned pointers remain valid until the next load/select.
- * Text and widget labels are separate: label() appends a stable ###message-id for ImGui.
+ * Text and widget labels are separate: t_id() appends a stable ###message-id for ImGui.
  */
 #include <cstdint>
 #include <filesystem>
@@ -25,34 +25,36 @@ namespace elysia {
 class App;
 }
 namespace elysia::text {
-struct Message {
-    const char* id;
-    const char* fallback;
-};
 struct Language {
     std::string id, name;
 };
-class ELYSIA_TEXT_API Catalog {
+class ELYSIA_TEXT_API I18nManager {
     struct State;
     std::unique_ptr<State> state_;
 
 public:
-    Catalog();
-    ~Catalog();
-    Catalog(const Catalog&) = delete;
-    Catalog& operator=(const Catalog&) = delete;
+    I18nManager();
+    ~I18nManager();
+    I18nManager(const I18nManager&) = delete;
+    I18nManager& operator=(const I18nManager&) = delete;
     /// Load *.yaml/*.yml dictionaries. Missing folders are optional. Invalid files leave the
-    /// catalog unchanged. Later packages may override keys in dependency/load order.
+    /// manager unchanged. Later packages may override keys in dependency/load order.
     void load(const std::filesystem::path& directory);
     /// Select an available locale; unresolved locales use English until their pack is loaded.
     void select(std::string language);
     std::string_view language() const;
     std::vector<Language> languages() const;
     uint64_t revision() const;
-    /// Selected language -> English -> source fallback. Message strings are borrowed per call.
-    const char* get(Message) const;
-    /// Cached translated label plus ###id; repeated rows still need their ordinary PushID scope.
-    const char* label(Message) const;
+    /// Selected language -> English -> fallback (or key itself when fallback is omitted).
+    /// Arguments are borrowed for this call; an unresolved fallback/key is returned as supplied.
+    const char* translate(const char* key, const char* fallback = nullptr) const;
+    /// Plain translated text with no ImGui ID suffix. Bind a local resource reference named TR.
+    const char* operator()(const char* key, const char* fallback = nullptr) const {
+        return translate(key, fallback);
+    }
+    /// For controls only: translated label plus ###key. TextUnformatted does not hide that suffix.
+    /// Repeated rows still need their ordinary PushID scope.
+    const char* t_id(const char* key, const char* fallback = nullptr) const;
 };
 struct ELYSIA_TEXT_API Plugin {
     void build(App&) const;

@@ -36,8 +36,9 @@
   intentional application output. Tests that inspect diagnostics must explicitly enable them.
 
 - Localization is an independent provider in `modules/text/`; read its README before changing
-  language behavior. Public contract: `elysia_text/catalog.hpp`. YAML stays private to its
-  implementation. Catalog data belongs to the UI App; resolve languages between frames and
+  language behavior. Public contract: `elysia_text/i18n.hpp`. YAML stays private to its
+  implementation. I18nManager data belongs to the UI App; resolve languages between frames and
   preserve symbolic widget IDs. Test with `elysia-text-tests`; sdk installs the provider.
-  The runnable example is `examples/localization/` (`elysia-text-example`). Optional localized
-  ImGui drawing helpers live in `elysia_gui/text.hpp`; do not add a text dependency to gui.hpp.
+  The runnable example is `examples/localization/` (`elysia-text-example`). Bind a local const
+  reference named TR to I18nManager and use its call operator / t_id() with ordinary ImGui.
+  Do not add global managers, implicit bindings, or wrappers around ImGui drawing functions.

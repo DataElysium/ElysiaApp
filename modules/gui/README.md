@@ -21,7 +21,6 @@ The feature declarations are organized as follows:
 | `windows.hpp` | Register windows and reusable panel contents | `Window`, `Draw`, `Registry` |
 | `image.hpp` | Own/upload an RGBA8 image and obtain its ImGui texture reference | `Image` |
 | `mods.hpp` | Add the optional mod-manager menu to an application menu bar | `draw_mods_menu` |
-| `text.hpp` | Optional localized text drawing; link `elysia-text` too | `text`, `text_wrapped` |
 | `config.hpp` | Compile/link macros shared with ImGui; not runtime settings | `ELYSIA_GUI_API`, `IMGUI_API` |
 
 `Context` borrows the caller's App. `Registry` holds window descriptions, visibility and drawing

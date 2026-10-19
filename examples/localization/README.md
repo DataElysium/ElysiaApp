@@ -29,12 +29,13 @@ xmake run -P . elysia-text-example examples/localization/locales --gui-font ../E
 ## 写界面只看这几行
 
 ```cpp
-#include <elysia_gui/text.hpp>
+#include <elysia_text/i18n.hpp>
 
-// words 是已加载的 elysia::text::Catalog。
-elysia::gui::text(words, {"demo.greeting", "Welcome aboard."});
-elysia::gui::text_wrapped(words, {"demo.help", "Change language, then try the button."});
-if (ImGui::Button(words.label({"demo.start", "Start"}))) {
+// 当前 App 的资源；这里只借用引用，不复制词典。
+const auto& TR = *app.world().resources().get<elysia::text::I18nManager>();
+ImGui::TextUnformatted(TR("demo.greeting", "Welcome aboard."));
+ImGui::TextWrapped("%s", TR("demo.help", "Change language, then try the button."));
+if (ImGui::Button(TR.t_id("demo.start", "Start"))) {
     // 原来的按钮操作。
 }
 ```
@@ -48,25 +49,28 @@ demo.help: "切换语言，再试试按钮。"
 demo.start: "开始"
 ```
 
-两个字符串分别是固定的词条名和缺少翻译时的英文。绘图函数直接显示查到的文字，
-其中的 `%` 不会当作格式指令。`label()` 用于现有的 ImGui 按钮、窗口和其他控件，
-自动保留固定 ID；不需要给每种控件再造一个翻译包装。
+`TR` 是 `I18nManager` 的局部引用，对象的 `operator()` 查询它的当前语言。
+也支持 RTScope 风格的 `TR("Start")`，这时英文原文同时作为键和回退文字，
+对应 YAML 为 `Start: "开始"`。已有带命名空间的符号键可以继续使用，不必重命名。
+
+`TR.t_id(...)` 只为现有 ImGui 控件生成带固定 `###id` 的字符串，不绘制控件。
+普通文字用 `TR(...)`。全部绘制、布局和交互仍然直接调用 ImGui。
 
 ## 初始化只做一次
 
 ```cpp
 app.add_plugin(elysia::text::Plugin{});
-auto& words = *app.world().resources().get<elysia::text::Catalog>();
-words.load(locale_directory);
-words.select("zh-CN");
+auto& i18n = *app.world().resources().get<elysia::text::I18nManager>();
+i18n.load(locale_directory);
+i18n.select("zh-CN");
 ```
 
-独立工具也可以直接创建 `elysia::text::Catalog words;`，不必安装 ECS 插件。
-插件只是帮 App 保存同一份词典，方便多个面板共享。`elysia-text` 负责读词典和查文字；
-可选的 `elysia_gui/text.hpp` 负责调用 ImGui 显示它，不改仿真或渲染后端。
-使用这份 GUI 头文件的目标需要同时链接 `elysia-gui` 和 `elysia-text`。
+独立工具也可以直接创建 `elysia::text::I18nManager i18n;`。
+管理器自己持有词典和当前语言，App 插件只是帮多个面板和 DLL 共享这一份资源。
+没有全局单例、隐式绑定、GUI 包装函数或新的控件框架。
 
 用户点击语言选项时先记录请求，下一帧的 `prepare()` 再调用 `select()`。
-示例中的 `State::language` 就是这个待应用的请求。这样一帧中的词条指针一直有效。
+示例中的 `State::language` 就是待应用的请求。这样一帧中的词条指针一直有效。
+使用者链接 `elysia-text`；GUI 应用同时使用已有的 `elysia-gui`。
 
-示例不需要 manifest、mod DLL 或 playset。先理解这一个窗口，再把同样的调用放进面板。
+示例不需要 manifest、mod DLL 或 playset。先运行这一个窗口，再使用相同写法修改面板。

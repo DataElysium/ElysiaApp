@@ -1,4 +1,4 @@
-#include <elysia_text/catalog.hpp>
+#include <elysia_text/i18n.hpp>
 #include <elysia/elysia.hpp>
 #include <algorithm>
 #include <fstream>
@@ -21,7 +21,7 @@ struct Translation {
     Dictionary messages;
 };
 } // namespace
-struct Catalog::State {
+struct I18nManager::State {
     std::string language = "en";
     std::map<std::string, Translation, std::less<>> translations{{"en", {"English", {}}}};
     Dictionary active;
@@ -38,9 +38,9 @@ struct Catalog::State {
         ++revision;
     }
 };
-Catalog::Catalog() : state_(std::make_unique<State>()) {}
-Catalog::~Catalog() = default;
-void Catalog::load(const std::filesystem::path& directory) {
+I18nManager::I18nManager() : state_(std::make_unique<State>()) {}
+I18nManager::~I18nManager() = default;
+void I18nManager::load(const std::filesystem::path& directory) {
     if (!std::filesystem::exists(directory))
         return;
     std::vector<std::filesystem::path> files;
@@ -90,41 +90,41 @@ void Catalog::load(const std::filesystem::path& directory) {
     state_->translations = std::move(translations);
     state_->resolve();
 }
-void Catalog::select(std::string language) {
+void I18nManager::select(std::string language) {
     if (language != state_->language) {
         state_->language = std::move(language);
         state_->resolve();
     }
 }
-std::string_view Catalog::language() const {
+std::string_view I18nManager::language() const {
     return state_->language;
 }
-std::vector<Language> Catalog::languages() const {
+std::vector<Language> I18nManager::languages() const {
     std::vector<Language> result;
     for (const auto& [id, value] : state_->translations)
         result.push_back({id, value.name});
     return result;
 }
-uint64_t Catalog::revision() const {
+uint64_t I18nManager::revision() const {
     return state_->revision;
 }
-const char* Catalog::get(Message message) const {
-    if (!message.id || !*message.id)
-        return message.fallback ? message.fallback : "";
-    if (auto found = state_->active.find(message.id); found != state_->active.end())
+const char* I18nManager::translate(const char* key, const char* fallback) const {
+    if (!key || !*key)
+        return fallback ? fallback : "";
+    if (auto found = state_->active.find(key); found != state_->active.end())
         return found->second.c_str();
-    return message.fallback ? message.fallback : message.id;
+    return fallback ? fallback : key;
 }
-const char* Catalog::label(Message message) const {
-    if (!message.id || !*message.id)
+const char* I18nManager::t_id(const char* key, const char* fallback) const {
+    if (!key || !*key)
         throw std::invalid_argument("Localized widgets require a stable message ID");
-    auto found = state_->labels.find(message.id);
+    auto found = state_->labels.find(key);
     if (found == state_->labels.end())
-        found = state_->labels.emplace(message.id, std::string(get(message)) + "###" + message.id)
-                    .first;
+        found =
+            state_->labels.emplace(key, std::string(translate(key, fallback)) + "###" + key).first;
     return found->second.c_str();
 }
 void Plugin::build(App& app) const {
-    app.world().resources().get_or_create<Catalog>();
+    app.world().resources().get_or_create<I18nManager>();
 }
 } // namespace elysia::text

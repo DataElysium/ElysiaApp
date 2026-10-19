@@ -1,6 +1,6 @@
 #include <elysia_app/runtime.hpp>
 #include <elysia_gui/gui.hpp>
-#include <elysia_gui/text.hpp>
+#include <elysia_text/i18n.hpp>
 #include <iostream>
 
 namespace {
@@ -11,33 +11,33 @@ struct State {
 
 void prepare(elysia::gui::Context& context) {
     auto resources = context.app.world().resources();
-    resources.get<elysia::text::Catalog>()->select(resources.get<State>()->language);
+    resources.get<elysia::text::I18nManager>()->select(resources.get<State>()->language);
 }
 
 void draw(elysia::gui::Context& context) {
     auto resources = context.app.world().resources();
-    const auto& words = *resources.get<elysia::text::Catalog>();
+    const auto& TR = *resources.get<elysia::text::I18nManager>();
     auto& state = *resources.get<State>();
 
     ImGui::SetNextWindowSize({560, 340}, ImGuiCond_FirstUseEver);
-    if (ImGui::Begin(words.label({"demo.window", "Localization example"}))) {
-        // Store the request now; prepare() changes the catalog before the next frame.
-        if (ImGui::BeginCombo(words.label({"demo.language", "Language"}), state.language.c_str())) {
-            for (const auto& language : words.languages())
+    if (ImGui::Begin(TR.t_id("demo.window", "Localization example"))) {
+        // Store the request now; prepare() changes the language before the next frame.
+        if (ImGui::BeginCombo(TR.t_id("demo.language", "Language"), state.language.c_str())) {
+            for (const auto& language : TR.languages())
                 if (ImGui::Selectable(language.name.c_str(), state.language == language.id))
                     state.language = language.id;
             ImGui::EndCombo();
         }
 
-        elysia::gui::text(words, {"demo.greeting", "Welcome aboard."});
-        elysia::gui::text_wrapped(words, {"demo.help", "Change language, then try the button. The "
-                                                       "application state stays unchanged."});
-        if (ImGui::Button(words.label({"demo.start", "Start"})))
+        ImGui::TextUnformatted(TR("demo.greeting", "Welcome aboard."));
+        ImGui::TextWrapped("%s", TR("demo.help", "Change language, then try the button. The "
+                                                 "application state stays unchanged."));
+        if (ImGui::Button(TR.t_id("demo.start", "Start")))
             state.running = !state.running;
         if (state.running)
-            elysia::gui::text(words, {"demo.running", "Running"});
+            ImGui::TextUnformatted(TR("demo.running", "Running"));
         else
-            elysia::gui::text(words, {"demo.stopped", "Stopped"});
+            ImGui::TextUnformatted(TR("demo.stopped", "Stopped"));
     }
     ImGui::End();
 }
@@ -57,7 +57,7 @@ int main(int argc, char** argv) {
         app.add_resource(std::move(arguments));
         app.add_resource(State{});
         app.add_plugin(elysia::text::Plugin{});
-        auto& words = *app.world().resources().get<elysia::text::Catalog>();
+        auto& words = *app.world().resources().get<elysia::text::I18nManager>();
         words.load(argv[1]);
         app.add_plugin(elysia::gui::GuiPlugin{{.title = "Elysia text example"}});
         app.add_resource(elysia::gui::Callbacks{.draw = draw, .prepare = prepare});
